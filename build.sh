@@ -49,9 +49,9 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=TheOneMemory
-CODENAME=Hayzel
-VARIANT=Staging
+KERNELNAME=Meow
+CODENAME=Furry
+VARIANT=HMP
 BASE=CLO
 
 # Changelogs
@@ -218,7 +218,7 @@ DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
-	git clone https://github.com/Tiktodz/AnyKernel3.git -b hmp AnyKernel3
+	git clone https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
 
 	if [ $BUILD_DTBO = 1 ]
 	then
@@ -392,9 +392,9 @@ gen_zip()
 	sed -i "s/kernel.type=.*/kernel.type=$VARIANT/g" anykernel.sh
 	sed -i "s/kernel.for=.*/kernel.for=$CODENAME/g" anykernel.sh
 	sed -i "s/kernel.compiler=.*/kernel.compiler=$KBUILD_COMPILER_STRING/g" anykernel.sh
-	sed -i "s/kernel.made=.*/kernel.made=dotkit @fakedotkit/g" anykernel.sh
+	sed -i "s/kernel.made=.*/kernel.made=Purrr @sandatjepil/g" anykernel.sh
 	sed -i "s/kernel.version=.*/kernel.version=$KERVER/g" anykernel.sh
-	sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing TheOneMemory kernel./g" anykernel.sh
+	sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing Meow kernel./g" anykernel.sh
 	sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
 	sed -i "s/build.type=.*/build.type=$BASE/g" anykernel.sh
 	sed -i "s/supported.versions=.*/supported.versions=9-13/g" anykernel.sh
@@ -407,7 +407,7 @@ gen_zip()
 	cd META-INF/com/google/android
 	sed -i "s/KNAME/$KERNELNAME/g" aroma-config
 	sed -i "s/KVER/$KERVER/g" aroma-config
-	sed -i "s/KAUTHOR/dotkit @fakedotkit/g" aroma-config
+	sed -i "s/KAUTHOR/Purrr @sandatjepil/g" aroma-config
 	sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 	sed -i "s/KBDATE/$DATE/g" aroma-config
 	sed -i "s/KVARIANT/$VARIANT/g" aroma-config
