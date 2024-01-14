@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Meow
-CODENAME=Furry
-VARIANT=HMP
+KERNELNAME=Purrr
+CODENAME=Meow
+VARIANT=Stock
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/Tiktodz/android_kernel_asus_sdm636/commits/staging"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-hmp"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
