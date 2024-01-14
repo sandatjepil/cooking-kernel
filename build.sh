@@ -49,20 +49,20 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Purrr
-CODENAME=Meow
+KERNELNAME=Meow
+CODENAME=Ginger
 VARIANT=Stock
-BASE=CLO
+BASE=Codelinaro
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-hmp"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
-AUTHOR="queen"
+AUTHOR="Purrr"
 
 # Architecture
 ARCH=arm64
