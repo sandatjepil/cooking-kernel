@@ -62,7 +62,7 @@ ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
-AUTHOR="Purrr"
+AUTHOR="queen"
 
 # Architecture
 ARCH=arm64
