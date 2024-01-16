@@ -50,19 +50,19 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Manx
-VARIANT=Stock
+CODENAME=Ragdoll
+VARIANT=UC
 BASE=Codelinaro
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
-AUTHOR="queen"
+AUTHOR="Purrr"
 
 # Architecture
 ARCH=arm64
@@ -290,7 +290,7 @@ tg_post_build()
 	MD5CHECK=$(md5sum "$1" | cut -d' ' -f1)
 
 	#Show the Checksum alongwith caption
-	if [ TG_SUPER = 1 ]
+	if [ $TG_SUPER = 1 ]
 	then
 	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
@@ -389,10 +389,6 @@ build_kernel()
 				tg_post_msg "<code>Building DTBO..</code>"
 				python2 "$KERNEL_DIR/scripts/ufdt/libufdt/utils/src/mkdtboimg.py" \
 					create "$KERNEL_DIR/out/arch/arm64/boot/dtbo.img" --page_size=4096 "$KERNEL_DIR/out/arch/arm64/boot/dts/$DTBO_PATH"
-			fi
-			if [ "$PTTG" = 1 ]
- 			then
-				tg_post_msg "`Kernel successfully compiled! Now zipping...`"
 			fi
 			gen_zip
 		else
