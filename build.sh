@@ -22,7 +22,7 @@
 # Kernel building script
 
 # Bail out if script fails
-# set -e
+set -e
 
 # Function to show an informational message
 msger()
@@ -93,10 +93,18 @@ INCREMENTAL=1
 
 # Push ZIP to Telegram. 1 is YES | 0 is NO(default)
 PTTG=1
+# Sending to a Supergroup. 1 is Yes | 0 is NO (default)
+TG_SUPER=1
+
 if [ $PTTG = 1 ]
 then
 	# Set Telegram Chat ID
 	CHATID="$TG_CHAT_ID"
+	# Set Topic ID (if sending to a Supergroup)
+	if [ $TG_SUPER = 1 ]
+	then
+	    TOPICID="$TG_TOPIC_ID"
+	fi
 fi
 
 # Generate a full DEFCONFIG prior building. 1 is YES | 0 is NO(default)
@@ -117,7 +125,7 @@ fi
 
 # Sign the zipfile
 # 1 is YES | 0 is NO
-SIGN=0
+SIGN=1
 if [ $SIGN = 1 ]
 then
 	#Check for java
@@ -259,11 +267,19 @@ exports()
 
 tg_post_msg()
 {
-	curl -s -X POST "$BOT_MSG_URL" -d chat_id="$CHATID" \
-	-d "disable_web_page_preview=true" \
-	-d "parse_mode=html" \
-	-d text="$1"
-
+	if [ $TG_SUPER = 1 ]
+	then
+	    curl -s -X POST "$BOT_MSG_URL" -d chat_id="$CHATID" \
+	    -d message_thread_id="$TOPICID" \
+	    -d "disable_web_page_preview=true" \
+	    -d "parse_mode=html" \
+	    -d text="$1"
+	else
+	    curl -s -X POST "$BOT_MSG_URL" -d chat_id="$CHATID" \
+	    -d "disable_web_page_preview=true" \
+	    -d "parse_mode=html" \
+	    -d text="$1"
+	fi
 }
 
 ##----------------------------------------------------------##
@@ -274,11 +290,21 @@ tg_post_build()
 	MD5CHECK=$(md5sum "$1" | cut -d' ' -f1)
 
 	#Show the Checksum alongwith caption
-	curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
-	-F chat_id="$CHATID"  \
-	-F "disable_web_page_preview=true" \
-	-F "parse_mode=Markdown" \
-	-F caption="$2 | *MD5 Checksum : *\`$MD5CHECK\`"
+	if [ TG_SUPER = 1 ]
+	then
+	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
+	    -F chat_id="$CHATID"  \
+	    -F message_thread_id="$TOPICID" \
+	    -F "disable_web_page_preview=true" \
+	    -F "parse_mode=Markdown" \
+	    -F caption="$2 | *MD5 Checksum : *\`$MD5CHECK\`"
+	else
+	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
+	    -F chat_id="$CHATID"  \
+	    -F "disable_web_page_preview=true" \
+	    -F "parse_mode=Markdown" \
+	    -F caption="$2 | *MD5 Checksum : *\`$MD5CHECK\`"
+	fi
 }
 
 ##----------------------------------------------------------##
@@ -364,8 +390,12 @@ build_kernel()
 				python2 "$KERNEL_DIR/scripts/ufdt/libufdt/utils/src/mkdtboimg.py" \
 					create "$KERNEL_DIR/out/arch/arm64/boot/dtbo.img" --page_size=4096 "$KERNEL_DIR/out/arch/arm64/boot/dts/$DTBO_PATH"
 			fi
-				gen_zip
-			else
+			if [ "$PTTG" = 1 ]
+ 			then
+				tg_post_msg "`Kernel successfully compiled! Now zipping...`"
+			fi
+			gen_zip
+		else
 			if [ "$PTTG" = 1 ]
  			then
 				tg_post_build "error.log" "*Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds*"
