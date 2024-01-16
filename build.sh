@@ -22,7 +22,7 @@
 # Kernel building script
 
 # Bail out if script fails
-set -e
+# set -e
 
 # Function to show an informational message
 msger()
@@ -369,6 +369,7 @@ build_kernel()
 			if [ "$PTTG" = 1 ]
  			then
 				tg_post_build "error.log" "*Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds*"
+    exit 2
 			fi
 		fi
 
@@ -444,7 +445,8 @@ build_kernel
 
 if [ $LOG_DEBUG = "1" ]
 then
-	tg_post_build "error.log" "$CHATID" "Debug Mode Logs"
+ mv error.log build.log
+	tg_post_build "build.log" "Debug Mode Logs"
 fi
 
 ##----------------*****-----------------------------##
