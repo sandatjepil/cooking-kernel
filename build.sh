@@ -50,7 +50,7 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Ginger
+CODENAME=Manx
 VARIANT=Stock
 BASE=Codelinaro
 
@@ -369,7 +369,7 @@ build_kernel()
 			if [ "$PTTG" = 1 ]
  			then
 				tg_post_build "error.log" "*Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds*"
-    exit 2
+				exit 2
 			fi
 		fi
 
@@ -445,7 +445,7 @@ build_kernel
 
 if [ $LOG_DEBUG = "1" ]
 then
- mv error.log build.log
+	mv error.log build.log
 	tg_post_build "build.log" "Debug Mode Logs"
 fi
 
