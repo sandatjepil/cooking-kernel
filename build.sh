@@ -22,7 +22,7 @@
 # Kernel building script
 
 # Bail out if script fails
-set -e
+# set -e
 
 # Function to show an informational message
 msger()
