@@ -50,12 +50,12 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Ragdoll
-VARIANT=UC
-BASE=Codelinaro
+CODENAME=Manx
+VARIANT=Stock
+BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
@@ -147,7 +147,7 @@ VERBOSE=0
 
 # Debug purpose. Send logs on every successfull builds
 # 1 is YES | 0 is NO(default)
-LOG_DEBUG=1
+LOG_DEBUG=0
 
 ##------------------------------------------------------##
 ##---------Do Not Touch Anything Beyond This------------##
@@ -256,29 +256,49 @@ exports()
 
 	BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
 	BOT_BUILD_URL="https://api.telegram.org/bot$TG_TOKEN/sendDocument"
+	BOT_DEL_URL="https://api.telegram.org/bot$TG_TOKEN/deleteMessage"
 	PROCS=$(nproc --all)
 
 	export KBUILD_BUILD_USER ARCH SUBARCH PATH \
                KBUILD_COMPILER_STRING BOT_MSG_URL \
-               BOT_BUILD_URL PROCS
+               BOT_BUILD_URL BOT_DEL_URL PROCS
 }
 
 ##---------------------------------------------------------##
 
-tg_post_msg()
-{
+tg_del_msg(){
 	if [ $TG_SUPER = 1 ]
 	then
-	    curl -s -X POST "$BOT_MSG_URL" -d chat_id="$CHATID" \
+	    curl -s -X POST "$BOT_DEL_URL" \
+	    -d chat_id="$CHATID" \
+	    -d message_thread_id="$TOPICID" \
+	    -d message_id="$MSGID"
+	else
+	    curl -s -X POST "$BOT_DEL_URL" \
+	    -d chat_id="$CHATID" \
+	    -d message_id="$MSGID"
+	fi
+}
+
+##---------------------------------------------------------##
+
+tg_post_msg(){
+	if [ $TG_SUPER = 1 ]
+	then
+	    MSGID=$(curl -s -X POST "$BOT_MSG_URL" \
+	    -d chat_id="$CHATID" \
 	    -d message_thread_id="$TOPICID" \
 	    -d "disable_web_page_preview=true" \
 	    -d "parse_mode=html" \
-	    -d text="$1"
+	    -d text="$1" \
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	else
-	    curl -s -X POST "$BOT_MSG_URL" -d chat_id="$CHATID" \
+	    MSGID=$(curl -s -X POST "$BOT_MSG_URL" \
+	    -d chat_id="$CHATID" \
 	    -d "disable_web_page_preview=true" \
 	    -d "parse_mode=html" \
-	    -d text="$1"
+	    -d text="$1" \
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
 
@@ -296,14 +316,14 @@ tg_post_build()
 	    -F chat_id="$CHATID"  \
 	    -F message_thread_id="$TOPICID" \
 	    -F "disable_web_page_preview=true" \
-	    -F "parse_mode=Markdown" \
-	    -F caption="$2 | *MD5 Checksum : *\`$MD5CHECK\`"
+	    -F "parse_mode=html" \
+	    -F caption="$2 %0A<b>MD5 Checksum:</b> <code>$MD5CHECK</code>"
 	else
 	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
-	    -F "parse_mode=Markdown" \
-	    -F caption="$2 | *MD5 Checksum : *\`$MD5CHECK\`"
+	    -F "parse_mode=html" \
+	    -F caption="$2 %0A<b>MD5 Checksum:</b> <code>$MD5CHECK</code>"
 	fi
 }
 
@@ -319,10 +339,10 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "<b>$KBUILD_BUILD_VERSION CI Build Triggered</b>%0A<b>Docker OS: </b><code>$DISTRO</code>%0A<b>Kernel Version : </b><code>$KERVER</code>%0A<b>Date : </b><code>$(TZ=Asia/Jakarta date)</code>%0A<b>Device : </b><code>$MODEL [$DEVICE]</code>%0A<b>Pipeline Host : </b><code>$KBUILD_BUILD_HOST</code>%0A<b>Host Core Count : </b><code>$PROCS</code>%0A<b>Compiler Used : </b><code>$KBUILD_COMPILER_STRING</code>%0A<b>Linker : </b><code>$LINKER</code>%0a<b>Branch : </b><code>$CI_BRANCH</code>%0A<b>Last Commit : </b><code>$COMMIT_HEAD</code>%0A<a href='$CL_URL'>Changelogs</a>"
+		tg_post_msg "<b>$KBUILD_BUILD_VERSION CI Build Triggered</b>%0A<b>Docker OS: </b><code>$DISTRO</code>%0A<b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A<b>Host Core Count: </b><code>$PROCS</code>%0A<b>Compiler Used: </b><code>$KBUILD_COMPILER_STRING</code>%0A<b>Linker: </b><code>$LINKER</code>%0A<b>Branch: </b><code>$CI_BRANCH</code>"
 	fi
 
-	make O=out $DEFCONFIG
+	make O=out $DEFCONFIG | tee -a error.log
 	if [ $DEF_REG = 1 ]
 	then
 		cp .config arch/arm64/configs/$DEFCONFIG
@@ -364,7 +384,7 @@ build_kernel()
 	msger -n "|| Started Compilation ||"
 	make -kj"$PROCS" O=out \
 		V=$VERBOSE \
-		"${MAKE[@]}" 2>&1 | tee error.log
+		"${MAKE[@]}" 2>&1 | tee -a error.log
 	if [ $MODULES = "1" ]
 	then
 	    msger -n "|| Started Compiling Modules ||"
@@ -394,8 +414,11 @@ build_kernel()
 		else
 			if [ "$PTTG" = 1 ]
  			then
-				tg_post_build "error.log" "*Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds*"
+ 			    tg_del_msg
+				tg_post_build "error.log" "Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds"
 				exit 2
+			else
+			    exit 2
 			fi
 		fi
 
@@ -409,10 +432,16 @@ gen_zip()
 	mv "$KERNEL_DIR"/out/arch/arm64/boot/$FILES AnyKernel3/$FILES
 	if [ $BUILD_DTBO = 1 ]
 	then
-	mv "$KERNEL_DIR"/out/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
+	    mv "$KERNEL_DIR"/out/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
 	fi
 	cdir AnyKernel3
-	cp -af $KERNEL_DIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel TheOneMemory/g" spectrum/init.spectrum.rc
+	# Remove spectrum in Ragdoll because it's useless
+	if [ "$CODENAME" != Ragdoll ]
+	then
+	    cp -af $KERNEL_DIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel TheOneMemory/g" spectrum/init.spectrum.rc
+	else
+	    rm -rf spectrum/init.spectrum.rc
+	fi
 	cp -af $KERNEL_DIR/changelog META-INF/com/google/android/aroma/changelog.txt
 	cp -af anykernel-real.sh anykernel.sh
 	sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
@@ -451,7 +480,8 @@ gen_zip()
 		if [ "$PTTG" = 1 ]
  		then
  			msger -n "|| Signing Zip ||"
-			tg_post_msg "<code>Signing Zip file with AOSP keys..</code>"
+ 			tg_del_msg
+			tg_post_msg "<b>Build Completed</b>%0A<code>Signing Zip file with AOSP keys..</code>"
  		fi
 		curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
 		java -jar zipsigner-3.0.jar "$ZIP_FINAL".zip "$ZIP_FINAL"-signed.zip
@@ -460,7 +490,15 @@ gen_zip()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_build "$ZIP_FINAL.zip" "Build took : $((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)"
+ 	    tg_del_msg
+		tg_post_build "$ZIP_FINAL.zip" \
+		"<b>Kernel Version: </b><code>$KERVER</code> \
+		%0A<b>Date: </b><code>$(TZ=Asia/Jakarta date)</code \
+		%0A<b>Device: </b><code>$MODEL [$DEVICE]</code> \
+		%0A<b>Compiler Used: </b><code>$KBUILD_COMPILER_STRING</code> \
+		%0A<b>Last Commit: </b><code>$COMMIT_HEAD</code> \
+		%0A<b>Full Changelog:</b> <a href='$CL_URL'>Github</a> \
+		<b>Build took:</b> <code>$((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)</code>"
 	fi
 	cd ..
 }
@@ -472,7 +510,7 @@ build_kernel
 if [ $LOG_DEBUG = "1" ]
 then
 	mv error.log build.log
-	tg_post_build "build.log" "Debug Mode Logs"
+	tg_post_build "build.log" "<b>Debug Mode Logs</b>"
 fi
 
 ##----------------*****-----------------------------##
