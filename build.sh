@@ -125,7 +125,7 @@ fi
 
 # Sign the zipfile
 # 1 is YES | 0 is NO
-SIGN=1
+SIGN=0
 if [ $SIGN = 1 ]
 then
 	#Check for java
@@ -490,15 +490,9 @@ gen_zip()
 
 	if [ "$PTTG" = 1 ]
  	then
- 	    tg_del_msg
-		tg_post_build "$ZIP_FINAL.zip" \
-		"<b>Kernel Version: </b><code>$KERVER</code> \
-		%0A<b>Date: </b><code>$(TZ=Asia/Jakarta date)</code \
-		%0A<b>Device: </b><code>$MODEL [$DEVICE]</code> \
-		%0A<b>Compiler Used: </b><code>$KBUILD_COMPILER_STRING</code> \
-		%0A<b>Last Commit: </b><code>$COMMIT_HEAD</code> \
-		%0A<b>Full Changelog:</b> <a href='$CL_URL'>Github</a> \
-		<b>Build took:</b> <code>$((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)</code>"
+		tg_del_msg
+		sleep 1
+		tg_post_build "$ZIP_FINAL.zip" "<b>Kernel Version: </b><code>$KERVER</code>%0A<b>Date: </b><code>$(TZ=Asia/Jakarta date)</code%0A<b>Device: </b><code>$MODEL [$DEVICE]</code>%0A<b>Compiler Used: </b><code>$KBUILD_COMPILER_STRING</code>%0A<b>Last Commit: </b><code>$COMMIT_HEAD</code>%0A<b>Full Changelog:</b> <a href='$CL_URL'>Github</a><b>Build took:</b> <code>$((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)</code>"
 	fi
 	cd ..
 }
