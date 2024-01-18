@@ -316,14 +316,14 @@ tg_post_build()
 	    -F chat_id="$CHATID"  \
 	    -F message_thread_id="$TOPICID" \
 	    -F "disable_web_page_preview=true" \
-	    -F "parse_mode=html" \
-	    -F caption="$2 %0A<b>MD5 Checksum:</b> <code>$MD5CHECK</code>"
+	    -F "parse_mode=Markdown" \
+	    -F caption="$2"
 	else
 	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
-	    -F "parse_mode=html" \
-	    -F caption="$2 %0A<b>MD5 Checksum:</b> <code>$MD5CHECK</code>"
+	    -F "parse_mode=Markdown" \
+	    -F caption="$2"
 	fi
 }
 
@@ -415,7 +415,7 @@ build_kernel()
 			if [ "$PTTG" = 1 ]
  			then
  			    tg_del_msg
-				tg_post_build "error.log" "Build failed to compile after $((DIFF / 60)) minute(s) and $((DIFF % 60)) seconds"
+				tg_post_build "error.log" "Build gagal setelah $((DIFF / 60)) mnt $((DIFF % 60)) dtk"
 				exit 2
 			else
 			    exit 2
@@ -491,8 +491,8 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_del_msg
-		tg_post_build "$ZIP_FINAL.zip" "<b>Build took:</b> <code>$((DIFF / 60)) min(s) $((DIFF % 60)) sec(s)</code>"
-		tg_post_msg "<code>$(TZ=Asia/Jakarta date)</code>%0A<b>Kernel Version: </b><code>$KERVER</code>%0A<b>Device: </b><code>$MODEL [$DEVICE]</code>%0A<b>Last Commit: </b><code>$COMMIT_HEAD</code>%0A<b>Full Changelog:</b> <a href='$CL_URL'>Github</a>"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0ALama Build $((DIFF / 60)) mnt $((DIFF % 60)) dtk%0A<b>Versi Kernel: </b>$KERVER%0A<b>Perangkat: </b>$MODEL [$DEVICE]%0A<b>Commit Terakhir: </b>$COMMIT_HEAD%0A<b>Changelog:</b> <a href='$CL_URL'>Github</a>"
+		tg_post_build "$ZIP_FINAL.zip" "*MD5 Checksum:* \`$MD5CHECK\`"
 	fi
 	cd ..
 }
@@ -504,7 +504,7 @@ build_kernel
 if [ $LOG_DEBUG = "1" ]
 then
 	mv error.log build.log
-	tg_post_build "build.log" "<b>Debug Mode Logs</b>"
+	tg_post_build "build.log" "Debug Mode Logs"
 fi
 
 ##----------------*****-----------------------------##
