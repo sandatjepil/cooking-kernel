@@ -50,12 +50,12 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Manx
-VARIANT=Stock
+CODENAME=Ragdoll
+VARIANT=UC
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
@@ -317,13 +317,13 @@ tg_post_build()
 	    -F message_thread_id="$TOPICID" \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2"
+	    -F caption="$2 | *MD5:* \`$MD5CHECK\`"
 	else
 	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2"
+	    -F caption="$2 | *MD5:* \`$MD5CHECK\`"
 	fi
 }
 
@@ -491,8 +491,8 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_del_msg
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0ALama Build $((DIFF / 60)) mnt $((DIFF % 60)) dtk%0A<b>Versi Kernel: </b>$KERVER%0A<b>Perangkat: </b>$MODEL [$DEVICE]%0A<b>Commit Terakhir: </b>$COMMIT_HEAD%0A<b>Changelog:</b> <a href='$CL_URL'>Github</a>"
-		tg_post_build "$ZIP_FINAL.zip" "*MD5 Checksum:* \`$MD5CHECK\`"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik%0A<b>Versi Kernel: </b>$KERVER%0A<b>Perangkat: </b>$MODEL [$DEVICE]%0A<b>Commit Terakhir: </b>$COMMIT_HEAD%0A<b>Changelog:</b> <a href='$CL_URL'>Github</a>"
+		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
 	fi
 	cd ..
 }
