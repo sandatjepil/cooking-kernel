@@ -187,7 +187,7 @@ fi
 KERVER=$(make kernelversion)
 
 # Set a commit head
-COMMIT_HEAD=$(git log --oneline -1)
+COMMIT_HEAD=$(git log --oneline -1 | cut -d " " -f 2-)
 
 # Set Date
 DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
@@ -323,7 +323,7 @@ tg_post_build()
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2 | *MD5:* \`$MD5CHECK\`"
+	    -F caption="*$2 | MD5:* \`$MD5CHECK\`"
 	fi
 }
 
@@ -339,7 +339,7 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "<b>$KBUILD_BUILD_VERSION CI Build Triggered</b>%0A<b>Docker OS: </b><code>$DISTRO</code>%0A<b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A<b>Host Core Count: </b><code>$PROCS</code>%0A<b>Compiler Used: </b><code>$KBUILD_COMPILER_STRING</code>%0A<b>Linker: </b><code>$LINKER</code>%0A<b>Branch: </b><code>$CI_BRANCH</code>"
+		tg_post_msg "<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2<b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2<b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A%E2%80%A2<b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2<b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2<b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2<b>Branch: </b><code>$CI_BRANCH</code>"
 	fi
 
 	make O=out $DEFCONFIG | tee -a error.log
@@ -491,7 +491,7 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_del_msg
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik%0A<b>Versi Kernel: </b>$KERVER%0A<b>Perangkat: </b>$MODEL [$DEVICE]%0A<b>Commit Terakhir: </b>$COMMIT_HEAD%0A<b>Changelog:</b> <a href='$CL_URL'>Github</a>"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A%E2%80%A2<b>Versi Kernel: </b>$KERVER%0A%E2%80%A2<b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2<b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2<b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
 		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
 	fi
 	cd ..
