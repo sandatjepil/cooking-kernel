@@ -125,7 +125,7 @@ fi
 
 # Sign the zipfile
 # 1 is YES | 0 is NO
-SIGN=0
+SIGN=1
 if [ $SIGN = 1 ]
 then
 	#Check for java
@@ -339,7 +339,7 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2<b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2<b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A%E2%80%A2<b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2<b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2<b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2<b>Branch: </b><code>$CI_BRANCH</code>"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>"
 	fi
 
 	make O=out $DEFCONFIG | tee -a error.log
@@ -481,7 +481,7 @@ gen_zip()
  		then
  			msger -n "|| Signing Zip ||"
  			tg_del_msg
-			tg_post_msg "<b>Build Completed</b>%0A<code>Signing Zip file with AOSP keys..</code>"
+			tg_post_msg "<b>Build selesai</b>%0A<code>Proses sign file Zip dengan Key AOSP</code>"
  		fi
 		curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
 		java -jar zipsigner-3.0.jar "$ZIP_FINAL".zip "$ZIP_FINAL"-signed.zip
@@ -491,7 +491,7 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_del_msg
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A%E2%80%A2<b>Versi Kernel: </b>$KERVER%0A%E2%80%A2<b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2<b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2<b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
 		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
 	fi
 	cd ..
