@@ -50,8 +50,8 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Manx
-VARIANT=Stock
+CODENAME=Ragdoll
+VARIANT=UC
 BASE=CLO
 
 # Changelogs
@@ -200,8 +200,8 @@ DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
 	if [ $COMPILER = "gcc" ]
 	then
 		msger -n "|| Cloning GCC ||"
-		git clone --depth=1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth=1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
   
   		# Toolchain Directory defaults to gcc
 		GCC64_DIR=$KERNEL_DIR/gcc64
@@ -211,11 +211,11 @@ DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
 	if [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang ||"
-		git clone --depth=1 https://github.com/RyuujiX/SDClang -b 14 sdclang
+		git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
 
   		msger -n "|| Cloning GCC 4.9 ||"
-		git clone --depth=1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth=1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
 		TC_DIR=$KERNEL_DIR/sdclang
@@ -226,7 +226,7 @@ DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
-	git clone https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
+	git clone --depth 1 https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
 
 	if [ $BUILD_DTBO = 1 ]
 	then
@@ -245,8 +245,7 @@ exports()
 	if [ $COMPILER = "sdclang" ]
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
-		# KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
-		KBUILD_COMPILER_STRING="Ngga pake clang, ngetik manual"
+		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
