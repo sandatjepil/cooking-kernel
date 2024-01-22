@@ -318,13 +318,13 @@ tg_post_build()
 	    -F message_thread_id="$TOPICID" \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="*$2 | MD5:* \`$MD5CHECK\`"
+	    -F caption="$2 | MD5: \`$MD5CHECK\`"
 	else
 	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="*$2 | MD5:* \`$MD5CHECK\`"
+	    -F caption="$2 | MD5: \`$MD5CHECK\`"
 	fi
 }
 
