@@ -55,7 +55,7 @@ VARIANT=Stock
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/test"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
