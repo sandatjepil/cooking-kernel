@@ -50,12 +50,12 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Manx
-VARIANT=Stock
+CODENAME=Ragdoll
+VARIANT=UC
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/test"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
@@ -79,7 +79,7 @@ DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
 # 'sdclang' or 'gcc'
-COMPILER=sdclang
+COMPILER=gcc
 
 # Build modules. 0 = NO | 1 = YES
 MODULES=0
@@ -192,7 +192,7 @@ KERVER=$(make kernelversion)
 COMMIT_HEAD=$(git log --oneline -1 | cut -d " " -f 2-)
 
 # Set Date
-DATE=$(TZ=Asia/Jakarta date +"%H%M%d%m%Y")
+DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 
 # Now Its time for other stuffs like cloning, exporting, etc
 
