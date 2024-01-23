@@ -50,15 +50,15 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Meow
-CODENAME=Ragdoll
-VARIANT=UC
+CODENAME=Manx
+VARIANT=Stock
 BASE=CLO
 
 # Changelogs
 CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$CODENAME-$VARIANT-$BASE"
+ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -158,8 +158,10 @@ LOG_DEBUG=0
 ## Set defaults first
 
 # shellcheck source=/etc/os-release
+export KBUILD_BUILD_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 export DISTRO=$(source /etc/os-release && echo "${NAME}")
-export KBUILD_BUILD_HOST=$(uname -a | awk '{print $2}')
+export PIPELINE_HOST=$(uname -a | awk '{print $2}')
+export KBUILD_BUILD_HOST=$DISTRO
 export CI_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 TERM=xterm
 
@@ -190,7 +192,7 @@ KERVER=$(make kernelversion)
 COMMIT_HEAD=$(git log --oneline -1 | cut -d " " -f 2-)
 
 # Set Date
-DATE=$(TZ=Asia/Jakarta date +"%Y%m%d")
+DATE=$(TZ=Asia/Jakarta date +"%H%M%d%m%Y")
 
 # Now Its time for other stuffs like cloning, exporting, etc
 
@@ -339,7 +341,7 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$KBUILD_BUILD_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>"
+		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>"
 	fi
 
 	make O=out $DEFCONFIG | tee -a error.log
@@ -438,7 +440,7 @@ gen_zip()
 	# Remove spectrum in Ragdoll because it's useless
 	if [ "$CODENAME" != Ragdoll ]
 	then
-	    cp -af $KERNEL_DIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel TheOneMemory/g" spectrum/init.spectrum.rc
+	    cp -af $KERNEL_DIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel Meow/g" spectrum/init.spectrum.rc
 	else
 	    rm -rf spectrum/init.spectrum.rc
 	fi
