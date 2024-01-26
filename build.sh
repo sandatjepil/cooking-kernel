@@ -55,7 +55,7 @@ VARIANT=UC
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/lazy-backup"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
@@ -158,7 +158,7 @@ LOG_DEBUG=0
 ## Set defaults first
 
 # shellcheck source=/etc/os-release
-export KBUILD_BUILD_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
+# export KBUILD_BUILD_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 export DISTRO=$(source /etc/os-release && echo "${NAME}")
 export PIPELINE_HOST=$(uname -a | awk '{print $2}')
 export KBUILD_BUILD_HOST=$DISTRO
