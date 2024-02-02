@@ -78,8 +78,8 @@ DEVICE="X00TD"
 DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
-# 'cosmic' or 'sdclang' or 'gcc'
-COMPILER=sdclang
+# 'jawa' or 'sdclang' or 'gcc'
+COMPILER=jawa
 
 # Build modules. 0 = NO | 1 = YES
 MODULES=0
@@ -222,13 +222,13 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 		# Toolchain Directory defaults to gcc
 		GCC64_DIR=$KERNEL_DIR/gcc64
 		GCC32_DIR=$KERNEL_DIR/gcc32
-	elif [ $COMPILER = "cosmic" ]
+	elif [ $COMPILER = "jawa" ]
 	then
-		msger -n "|| Cloning Cosmic Clang ||"
-	    git clone --depth 1 https://gitlab.com/GhostMaster69-dev/cosmic-clang cosmic-clang
-
-		# Toolchain Directory defaults to cosmic-clang
-		TC_DIR=$KERNEL_DIR/cosmic-clang
+		msger -n "|| Cloning Jawa Clang ||"
+        wget https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && tar -xzf JawaClang*.tar.gz -C $KERNEL_DIR/jawa-clang
+		cdir $KERNEL_DIR
+		# Toolchain Directory defaults to jawa clang
+		TC_DIR=$KERNEL_DIR/jawa-clang
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -258,10 +258,10 @@ exports()
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
-    elif [ $COMPILER = "cosmic" ]
+    elif [ $COMPILER = "jawa" ]
 	then
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
-		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version)
+		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version | cut -d " " -f 1-4)
 		PATH=$TC_DIR/bin:$PATH
 	fi
 
@@ -385,13 +385,15 @@ build_kernel()
 			OBJCOPY=aarch64-linux-android-objcopy \
 			LD=aarch64-linux-android-$LINKER
 		)
-	elif [ $COMPILER = "cosmic" ]
+	elif [ $COMPILER = "jawa" ]
 	then
 		MAKE+=(
 			-Wno-strict-prototypes CROSS_COMPILE=aarch64-linux-gnu- \
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
 			CLANG_TRIPLE=aarch64-linux-gnu- \
-			CC=clang ${ClangMoreStrings}
+			CC=clang \
+			HOSTCC=gcc \
+			HOSTCXX=g++ ${ClangMoreStrings}
 		)
 	fi
 
