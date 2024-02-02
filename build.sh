@@ -248,7 +248,7 @@ exports()
 		CLANG_VER="Snapdragon clang version 14.1.5"
 		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
-		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
+		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=$TC_DIR/bin/ld.lld HOSTLD=$TC_DIR/bin/ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
