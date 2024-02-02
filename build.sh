@@ -385,7 +385,7 @@ build_kernel()
 			OBJCOPY=aarch64-linux-android-objcopy \
 			LD=aarch64-linux-android-$LINKER
 		)
-	if [ $COMPILER = "cosmic" ]
+	elif [ $COMPILER = "cosmic" ]
 	then
 		MAKE+=(
 			CROSS_COMPILE=aarch64-linux-gnu- \
