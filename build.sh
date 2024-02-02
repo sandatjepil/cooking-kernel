@@ -209,13 +209,13 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 		GCC32_DIR=$KERNEL_DIR/gcc32
 	elif [ $COMPILER = "sdclang" ]
 	then
-		msger -n "|| Cloning SDClang ||"
+		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
-		wget -O sdclang.tar.gz https://github.com/sandatjepil/SDClang/archive/refs/tags/v14.1.5.tar.gz && mkdir -p $KERNEL_DIR/sdclang && tar -xvzf sdclang.tar.gz -C $KERNEL_DIR/sdclang
+		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xvzf sdclangxgcc.tar.gz
 
-  		msger -n "|| Cloning GCC 4.9 ||"
-		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+  		# msger -n "|| Cloning GCC 4.9 ||"
+		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		# git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
 		TC_DIR=$KERNEL_DIR/sdclang
@@ -363,7 +363,7 @@ build_kernel()
 		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>%0A%E2%80%A2 <b>Commit: </b><code>$COMMIT_HEAD</code>"
 	fi
 
-	make O=out $DEFCONFIG | tee -a error.log
+	make O=out $DEFCONFIG
 	if [ $DEF_REG = 1 ]
 	then
 		cp .config arch/arm64/configs/$DEFCONFIG
@@ -415,7 +415,7 @@ build_kernel()
 	msger -n "|| Started Compilation ||"
 	make -kj"$PROCS" O=out \
 		V=$VERBOSE \
-		"${MAKE[@]}" 2>&1 | tee -a error.log
+		"${MAKE[@]}" 2>&1
 	if [ $MODULES = "1" ]
 	then
 	    msger -n "|| Started Compiling Modules ||"
