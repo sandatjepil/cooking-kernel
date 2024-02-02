@@ -79,7 +79,7 @@ DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
 # 'cosmic' or 'sdclang' or 'gcc'
-COMPILER=cosmic
+COMPILER=sdclang
 
 # Build modules. 0 = NO | 1 = YES
 MODULES=0
