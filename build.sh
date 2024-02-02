@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Meow
+KERNELNAME=Zen
 CODENAME=NoKSU
 VARIANT=Stock
-BASE=CLO
+BASE=LOS-16
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/noksu"
+CL_URL="https://github.com/LineageOS/android_kernel_asus_sdm660/commits/lineage-16.0/"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
@@ -147,7 +147,7 @@ VERBOSE=0
 
 # Debug purpose. Send logs on every successfull builds
 # 1 is YES | 0 is NO(default)
-LOG_DEBUG=0
+LOG_DEBUG=1
 
 ##------------------------------------------------------##
 ##---------Do Not Touch Anything Beyond This------------##
@@ -247,7 +247,7 @@ exports()
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
 		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
+		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
@@ -498,6 +498,7 @@ gen_zip()
 	cd ..
 }
 
+echo "CONFIG_OVERLAY_FS=y" >> "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel
