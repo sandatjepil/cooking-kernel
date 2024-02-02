@@ -225,8 +225,9 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	elif [ $COMPILER = "jawa" ]
 	then
 		msger -n "|| Cloning Jawa Clang ||"
-        wget https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && tar -xzf JawaClang*.tar.gz -C $KERNEL_DIR/jawa-clang
+        wget https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && mkdir -f $KERNEL_DIR/jawa-clang && tar -xzf JawaClang*.tar.gz -C $KERNEL_DIR/jawa-clang
 		cdir $KERNEL_DIR
+
 		# Toolchain Directory defaults to jawa clang
 		TC_DIR=$KERNEL_DIR/jawa-clang
   	fi
@@ -252,7 +253,7 @@ exports()
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
 		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
+		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
@@ -261,8 +262,8 @@ exports()
     elif [ $COMPILER = "jawa" ]
 	then
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
-		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version | cut -d " " -f 1-4)
-		PATH=$TC_DIR/bin:$PATH
+		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version | head -n 1)
+		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 	fi
 
 	BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -388,7 +389,7 @@ build_kernel()
 	elif [ $COMPILER = "jawa" ]
 	then
 		MAKE+=(
-			-Wno-strict-prototypes CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-gnu- \
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
 			CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
