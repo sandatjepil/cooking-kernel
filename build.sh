@@ -391,8 +391,7 @@ build_kernel()
 			CROSS_COMPILE=aarch64-linux-gnu- \
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
 			CLANG_TRIPLE=aarch64-linux-gnu- \
-			CC=clang \
-			${ClangMoreStrings}
+			CC=clang ${ClangMoreStrings}
 		)
 	fi
 
