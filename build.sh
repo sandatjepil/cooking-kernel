@@ -225,7 +225,7 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	elif [ $COMPILER = "jawa" ]
 	then
 		msger -n "|| Cloning Jawa Clang ||"
-        wget https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && mkdir -f $KERNEL_DIR/jawa-clang && tar -xzf JawaClang*.tar.gz -C $KERNEL_DIR/jawa-clang
+        wget https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && mkdir -p $KERNEL_DIR/jawa-clang && tar -xzf JawaClang*.tar.gz -C $KERNEL_DIR/jawa-clang
 		cdir $KERNEL_DIR
 
 		# Toolchain Directory defaults to jawa clang
