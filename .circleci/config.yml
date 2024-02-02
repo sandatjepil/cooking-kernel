@@ -7,7 +7,7 @@ jobs:
       - run:
           shell: /bin/bash
           command: |
-            git clone --recursive --depth 1 https://github.com/Tiktodz/android_kernel_asus_sdm636 -b darkonah kernel && cd kernel
+            git clone --recursive --depth 1 https://github.com/sandatjepil/asus_kernel_sdm636 -b unstable kernel && cd kernel
             curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/circle/build.sh > run.sh
             source run.sh
           no_output_timeout : 1h
