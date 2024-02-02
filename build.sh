@@ -79,7 +79,7 @@ DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
 # 'jawa' or 'sdclang' or 'gcc'
-COMPILER=jawa
+COMPILER=sdclang
 
 # Build modules. 0 = NO | 1 = YES
 MODULES=0
@@ -210,7 +210,8 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang ||"
-		git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
+		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
+		wget -O sdclang.tar.gz https://github.com/sandatjepil/SDClang/archive/refs/tags/v14.1.5.tar.gz && mkdir -p $KERNEL_DIR/sdclang && tar -xvzf sdclang.tar.gz -C $KERNEL_DIR/sdclang
 
   		msger -n "|| Cloning GCC 4.9 ||"
 		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
