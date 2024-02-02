@@ -228,8 +228,16 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
         wget -O jawaclang.tar.gz https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && mkdir -p $KERNEL_DIR/jawa-clang && tar -xvzf jawaclang.tar.gz -C $KERNEL_DIR/jawa-clang
 		cdir $KERNEL_DIR
 
+  		msger -n "|| Cloning GCC 4.9 ||"
+		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+
 		# Toolchain Directory defaults to jawa clang
-		TC_DIR=$KERNEL_DIR/jawa-clang/*
+		TC_DIR=$KERNEL_DIR/jawa-clang
+		
+		# Toolchain Directory defaults to gcc
+		GCC64_DIR=$KERNEL_DIR/gcc64
+		GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -262,7 +270,7 @@ exports()
     elif [ $COMPILER = "jawa" ]
 	then
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
-		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version | head -n 1)
+		KBUILD_COMPILER_STRING='$("$TC_DIR"/bin/clang --version | head -n 1) x GCC version 4.9'
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 	fi
 
