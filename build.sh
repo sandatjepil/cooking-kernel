@@ -50,15 +50,15 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=Ragdoll
-CODENAME=Manx
+CODENAME=KSU
 VARIANT=Stock
-BASE=CLO
+BASE=Codelinaro
 
 # Changelogs
 CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$VARIANT-$BASE"
+ZIPNAME="$KERNELNAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -78,8 +78,8 @@ DEVICE="X00TD"
 DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
-# 'sdclang' or 'gcc'
-COMPILER=sdclang
+# 'cosmic' or 'sdclang' or 'gcc'
+COMPILER=cosmic
 
 # Build modules. 0 = NO | 1 = YES
 MODULES=0
@@ -207,9 +207,7 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
   		# Toolchain Directory defaults to gcc
 		GCC64_DIR=$KERNEL_DIR/gcc64
 		GCC32_DIR=$KERNEL_DIR/gcc32
-	fi
-
-	if [ $COMPILER = "sdclang" ]
+	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang ||"
 		git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
@@ -224,6 +222,13 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 		# Toolchain Directory defaults to gcc
 		GCC64_DIR=$KERNEL_DIR/gcc64
 		GCC32_DIR=$KERNEL_DIR/gcc32
+	elif [ $COMPILER = "cosmic" ]
+	then
+		msger -n "|| Cloning Cosmic Clang ||"
+	    git clone --depth 1 https://gitlab.com/GhostMaster69-dev/cosmic-clang cosmic-clang
+
+		# Toolchain Directory defaults to cosmic-clang
+		TC_DIR=$KERNEL_DIR/cosmic-clang
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -247,12 +252,17 @@ exports()
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
 		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
+		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
+    elif [ $COMPILER = "cosmic" ]
+	then
+		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
+		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version)
+		PATH=$TC_DIR/bin:$PATH
 	fi
 
 	BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -375,6 +385,15 @@ build_kernel()
 			OBJCOPY=aarch64-linux-android-objcopy \
 			LD=aarch64-linux-android-$LINKER
 		)
+	if [ $COMPILER = "cosmic" ]
+	then
+		MAKE+=(
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+			CLANG_TRIPLE=aarch64-linux-gnu- \
+			CC=clang \
+			${ClangMoreStrings}
+		)
 	fi
 
 	if [ $SILENCE = "1" ]
@@ -436,13 +455,7 @@ gen_zip()
 	    mv "$KERNEL_DIR"/out/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
 	fi
 	cdir AnyKernel3
-	# Remove spectrum in Ragdoll because it's useless
-	if [ "$CODENAME" != Ragdoll ]
-	then
-	    cp -af $KERNEL_DIR/init.$CODENAME.Spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel Meow/g" spectrum/init.spectrum.rc
-	else
-	    rm -rf spectrum/init.spectrum.rc
-	fi
+	cp -af $KERNEL_DIR/init.spectrum.rc spectrum/init.spectrum.rc && sed -i "s/persist.spectrum.kernel.*/persist.spectrum.kernel Meow/g" spectrum/init.spectrum.rc
 	cp -af $KERNEL_DIR/changelog META-INF/com/google/android/aroma/changelog.txt
 	cp -af anykernel-real.sh anykernel.sh
 	sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
