@@ -191,7 +191,8 @@ KERVER=$(make kernelversion)
 COMMIT_HEAD=$(git log --oneline -1 | cut -d " " -f 2-)
 
 # Set Date
-DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
+DATE=$(TZ=Asia/Jakarta date +"%d%m%Y-%H%M")
+TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 
 # Now Its time for other stuffs like cloning, exporting, etc
 
@@ -211,7 +212,7 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
-		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xvzf sdclangxgcc.tar.gz
+		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
@@ -360,7 +361,7 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>%0A%E2%80%A2 <b>Commit: </b><code>$COMMIT_HEAD</code>"
+		tg_post_msg "$TG_TIMESTAMP%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>%0A%E2%80%A2 <b>Commit: </b><code>$COMMIT_HEAD</code>"
 	fi
 
 	make O=out $DEFCONFIG
@@ -516,7 +517,7 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_del_msg
-		tg_post_msg "$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')%0A%0A%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
+		tg_post_msg "$TG_TIMESTAMP%0A%0A%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
 		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
 	fi
 	cd ..
@@ -524,7 +525,7 @@ gen_zip()
 
 clone
 exports
-build_kernel
+build_kernel | tee -a error.log
 
 if [ $LOG_DEBUG = "1" ]
 then
