@@ -49,16 +49,16 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Ragdoll
-CODENAME=KSU
-VARIANT=Stock
-BASE=Codelinaro
+KERNELNAME=Skywalker
+CODENAME=Saisei
+VARIANT=Stock-OC
+BASE=CAF
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/unstable"
+CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/hmp"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$BASE"
+ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -476,7 +476,7 @@ gen_zip()
 	sed -i "s/kernel.compiler=.*/kernel.compiler=$KBUILD_COMPILER_STRING/g" anykernel.sh
 	sed -i "s/kernel.made=.*/kernel.made=Purrr @sandatjepil/g" anykernel.sh
 	sed -i "s/kernel.version=.*/kernel.version=$KERVER/g" anykernel.sh
-	sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing Meow kernel./g" anykernel.sh
+	sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing $KERNELNAME kernel./g" anykernel.sh
 	sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
 	sed -i "s/build.type=.*/build.type=$BASE/g" anykernel.sh
 	sed -i "s/supported.versions=.*/supported.versions=9-13/g" anykernel.sh
