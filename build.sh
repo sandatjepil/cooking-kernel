@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Skywalker
+KERNELNAME=SkyWalker
 CODENAME=Saisei
 VARIANT=Stock-OC
-BASE=CAF
+BASE=EOL
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/hmp"
+CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/nvt"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
