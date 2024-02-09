@@ -50,12 +50,12 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=SkyWalker
-CODENAME=Saisei
+CODENAME=Test
 VARIANT=Stock
 BASE=EOL
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/hmp"
+CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/anyar"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
@@ -479,7 +479,7 @@ gen_zip()
 	sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing $KERNELNAME kernel./g" anykernel.sh
 	sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
 	sed -i "s/build.type=.*/build.type=$BASE/g" anykernel.sh
-	sed -i "s/supported.versions=.*/supported.versions=9-13/g" anykernel.sh
+	sed -i "s/supported.versions=.*/supported.versions=9-10/g" anykernel.sh
 	sed -i "s/device.name1=.*/device.name1=X00TD/g" anykernel.sh
 	sed -i "s/device.name2=.*/device.name2=X00T/g" anykernel.sh
 	sed -i "s/device.name3=.*/device.name3=Zenfone Max Pro M1 (X00TD)/g" anykernel.sh
