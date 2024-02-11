@@ -49,16 +49,16 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Zen
+KERNELNAME=perf
 CODENAME=NoKSU
 VARIANT=Stock
-BASE=LOS-16
+BASE=EOL
 
 # Changelogs
-CL_URL="https://github.com/LineageOS/android_kernel_asus_sdm660/commits/lineage-16.0/"
+CL_URL="https://github.com/LineageOS/android_kernel_asus_sdm660/commits/lineage-20/"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
+ZIPNAME="$KERNELNAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -212,11 +212,12 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	if [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang ||"
-		git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
+		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
+		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
-  		msger -n "|| Cloning GCC 4.9 ||"
-		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+  		# msger -n "|| Cloning GCC 4.9 ||"
+		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		# git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
 		TC_DIR=$KERNEL_DIR/sdclang
@@ -246,7 +247,7 @@ exports()
 	if [ $COMPILER = "sdclang" ]
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
+		KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
 		export ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
@@ -454,7 +455,7 @@ gen_zip()
 	# sed -i "s/message.word=.*/message.word=Appreciate your efforts for choosing Meow kernel./g" anykernel.sh
 	# sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
 	# sed -i "s/build.type=.*/build.type=$BASE/g" anykernel.sh
-	sed -i "s/supported.versions=.*/supported.versions=9-13/g" anykernel.sh
+	sed -i "s/supported.versions=.*/supported.versions=13/g" anykernel.sh
 	sed -i "s/device.name1=.*/device.name1=X00TD/g" anykernel.sh
 	sed -i "s/device.name2=.*/device.name2=X00T/g" anykernel.sh
 	sed -i "s/device.name3=.*/device.name3=Zenfone Max Pro M1 (X00TD)/g" anykernel.sh
@@ -498,7 +499,7 @@ gen_zip()
 	cd ..
 }
 
-echo "CONFIG_OVERLAY_FS=y" >> "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-perf"/g' "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel
