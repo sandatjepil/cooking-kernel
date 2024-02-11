@@ -248,7 +248,7 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		CLANG_VER="Snapdragon clang version 14.1.5"
+		# CLANG_VER="Snapdragon clang version 14.1.5"
 		# KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
 		KBUILD_COMPILER_STRING="Proton Clang v15.0.0"
 		# PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
@@ -363,7 +363,7 @@ build_kernel()
 		MAKE+=(
 			CROSS_COMPILE=aarch64-linux-gnu- \
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-			CLANG_TRIPLE=aarch64-linux-gnu- \
+			# CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
 			HOSTCC=gcc \
 			HOSTCXX=g++ "${ClangMoreStrings}"
@@ -503,7 +503,7 @@ gen_zip()
 	cd ..
 }
 
-# sed -i "s/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=-perf/g" "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-perf"/g' "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel
