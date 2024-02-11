@@ -50,7 +50,7 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=X00TD
-CODENAME=Light
+CODENAME=4.4
 VARIANT=Stock
 BASE=EOL
 
@@ -58,7 +58,7 @@ BASE=EOL
 CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/pescerjing"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$VARIANT-$BASE"
+ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
