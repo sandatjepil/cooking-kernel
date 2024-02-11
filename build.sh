@@ -214,7 +214,8 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 	then
 		msger -n "|| Cloning SDClang ||"
 		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
-		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
+		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
+        git clone https://gitlab.com/LeCmnGend/proton-clang -b clang-15 --depth=1 sdclang
 
   		# msger -n "|| Cloning GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
@@ -224,8 +225,8 @@ DATE=$(TZ=Asia/Jakarta date +"%H%M-%d%m%Y")
 		TC_DIR=$KERNEL_DIR/sdclang
   
 		# Toolchain Directory defaults to gcc
-		GCC64_DIR=$KERNEL_DIR/gcc64
-		GCC32_DIR=$KERNEL_DIR/gcc32
+		# GCC64_DIR=$KERNEL_DIR/gcc64
+		# GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -248,8 +249,10 @@ exports()
 	if [ $COMPILER = "sdclang" ]
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
+		# KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
+		KBUILD_COMPILER_STRING="Proton Clang v15.0.0"
+		# PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin:$PATH
+		PATH="$TC_DIR"/bin:$PATH
 		export ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
@@ -358,8 +361,8 @@ build_kernel()
 	if [ $COMPILER = "sdclang" ]
 	then
 		MAKE+=(
-			CROSS_COMPILE=aarch64-linux-android- \
-			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
 			CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
 			HOSTCC=gcc \
