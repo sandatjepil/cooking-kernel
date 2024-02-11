@@ -500,7 +500,7 @@ gen_zip()
 	cd ..
 }
 
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-perf"/g' "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
+# sed -i "s/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=-perf/g" "$KERNEL_DIR"/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel
