@@ -162,6 +162,7 @@ export DISTRO=$(source /etc/os-release && echo "${NAME}")
 export PIPELINE_HOST=$(uname -a | awk '{print $2}')
 export KBUILD_BUILD_HOST=$DISTRO
 export CI_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+export KBUILD_BUILD_TIMESTAMP=$(TZ=Asia/Jakarta date)
 TERM=xterm
 
 ## Check for CI
