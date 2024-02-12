@@ -50,7 +50,7 @@ BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
 KERNELNAME=X00TD
-CODENAME=4_4
+CODENAME=Light
 VARIANT=Stock
 BASE=EOL
 
@@ -58,7 +58,7 @@ BASE=EOL
 CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/pescerjing"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-$CODENAME-$BASE"
+ZIPNAME="$KERNELNAME-Kernel-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -78,7 +78,7 @@ DEVICE="X00TD"
 DEFCONFIG=X00TD_defconfig
 
 # Specify compiler.
-# 'jawa' or 'sdclang' or 'gcc'
+# 'sdclang' or 'gcc'
 COMPILER=sdclang
 
 # Build modules. 0 = NO | 1 = YES
@@ -224,22 +224,6 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 		# Toolchain Directory defaults to gcc
 		GCC64_DIR=$KERNEL_DIR/gcc64
 		GCC32_DIR=$KERNEL_DIR/gcc32
-	elif [ $COMPILER = "jawa" ]
-	then
-		msger -n "|| Cloning Jawa Clang ||"
-        wget -O jawaclang.tar.gz https://github.com/blueseaxy/Clang/releases/download/JawaClang-18.0/JawaClang-18.0-16112023.tar.gz && mkdir -p $KERNEL_DIR/jawa-clang && tar -xvzf jawaclang.tar.gz -C $KERNEL_DIR/jawa-clang
-		cdir $KERNEL_DIR
-
-  		msger -n "|| Cloning GCC 4.9 ||"
-		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
-
-		# Toolchain Directory defaults to jawa clang
-		TC_DIR=$KERNEL_DIR/jawa-clang
-		
-		# Toolchain Directory defaults to gcc
-		GCC64_DIR=$KERNEL_DIR/gcc64
-		GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -262,18 +246,13 @@ exports()
 	if [ $COMPILER = "sdclang" ]
 	then
 		CLANG_VER="Snapdragon clang version 14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER X GCC 4.9"
+		KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
-    elif [ $COMPILER = "jawa" ]
-	then
-		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
-		KBUILD_COMPILER_STRING='$("$TC_DIR"/bin/clang --version | head -n 1) x GCC version 4.9'
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 	fi
 
 	BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -500,15 +479,10 @@ gen_zip()
 	## Prepare a final zip variable
 	ZIP_FINAL="$ZIPNAME-$DATE"
 
+	## Sign the zip
 	if [ $SIGN = 1 ]
 	then
-		## Sign the zip before sending it to telegram
-		if [ "$PTTG" = 1 ]
- 		then
- 			msger -n "|| Signing Zip ||"
- 			tg_del_msg
-			tg_post_msg "<b>Build selesai</b>%0A<code>Proses sign file Zip dengan Key AOSP</code>"
- 		fi
+ 		msger -n "|| Signing Zip ||"
 		curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
 		java -jar zipsigner-3.0.jar "$ZIP_FINAL".zip "$ZIP_FINAL"-signed.zip
 		ZIP_FINAL="$ZIP_FINAL-signed"
