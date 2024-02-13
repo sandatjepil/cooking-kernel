@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=X00TD
+KERNELNAME=TOM-EAS
 CODENAME=Light
 VARIANT=Stock
-BASE=EOL
+BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/pescerjing"
+CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/codelinaro-eas"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-Kernel-$BASE"
@@ -170,7 +170,7 @@ then
 	if [ "$CIRCLECI" ]
 	then
 		export KBUILD_BUILD_VERSION="1"
-		export CI_BRANCH=$CIRCLE_BRANCH
+		# export CI_BRANCH=$CIRCLE_BRANCH
 	fi
 	if [ "$DRONE" ]
 	then
@@ -227,7 +227,7 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
-	git clone --depth 1 https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
+	git clone --depth 1 https://github.com/Tiktodz/AnyKernel3.git -b eas AnyKernel3
 
 	if [ $BUILD_DTBO = 1 ]
 	then
