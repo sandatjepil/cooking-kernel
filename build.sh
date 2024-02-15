@@ -55,7 +55,7 @@ VARIANT=Stock
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/Tiktodz/android_kernel_asus_sdm636/commits/codelinaro-eas"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-eas"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$BASE"
@@ -147,7 +147,7 @@ VERBOSE=0
 
 # Debug purpose. Send logs on every successfull builds
 # 1 is YES | 0 is NO(default)
-LOG_DEBUG=0
+LOG_DEBUG=1
 
 ##------------------------------------------------------##
 ##---------Do Not Touch Anything Beyond This------------##
@@ -245,8 +245,8 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		CLANG_VER="Snapdragon Clang v14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
+		CLANG_VER="Snapdragon LLVM v14.1.5"
+		KBUILD_COMPILER_STRING="$CLANG_VER × GCC Toolchain v4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
@@ -257,27 +257,33 @@ exports()
 
 	BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
 	BOT_BUILD_URL="https://api.telegram.org/bot$TG_TOKEN/sendDocument"
-	BOT_DEL_URL="https://api.telegram.org/bot$TG_TOKEN/deleteMessage"
+	BOT_EDIT_URL="https://api.telegram.org/bot$TG_TOKEN/editMessageCaption"
 	PROCS=$(nproc --all)
 
 	export KBUILD_BUILD_USER ARCH SUBARCH PATH \
                KBUILD_COMPILER_STRING BOT_MSG_URL \
-               BOT_BUILD_URL BOT_DEL_URL PROCS
+               BOT_BUILD_URL BOT_EDIT_URL PROCS
 }
 
 ##---------------------------------------------------------##
 
-tg_del_msg(){
+tg_edit_msg(){
 	if [ $TG_SUPER = 1 ]
 	then
-	    curl -s -X POST "$BOT_DEL_URL" \
+	    curl -s -X POST "$BOT_EDIT_URL" \
 	    -d chat_id="$CHATID" \
+	    -d "disable_web_page_preview=true" \
+	    -d "parse_mode=html" \
 	    -d message_thread_id="$TOPICID" \
-	    -d message_id="$MSGID"
+	    -d message_id="$MSGID" \
+	    -d caption="$1"
 	else
-	    curl -s -X POST "$BOT_DEL_URL" \
+	    curl -s -X POST "$BOT_EDIT_URL" \
 	    -d chat_id="$CHATID" \
-	    -d message_id="$MSGID"
+	    -d "disable_web_page_preview=true" \
+	    -d "parse_mode=html" \
+	    -d message_id="$MSGID" \
+	    -d caption="$1"
 	fi
 }
 
@@ -286,20 +292,18 @@ tg_del_msg(){
 tg_post_msg(){
 	if [ $TG_SUPER = 1 ]
 	then
-	    MSGID=$(curl -s -X POST "$BOT_MSG_URL" \
+	    curl -s -X POST "$BOT_MSG_URL" \
 	    -d chat_id="$CHATID" \
 	    -d message_thread_id="$TOPICID" \
 	    -d "disable_web_page_preview=true" \
 	    -d "parse_mode=html" \
-	    -d text="$1" \
-	    | cut -d ":" -f 4 | cut -d "," -f 1)
+	    -d text="$1"
 	else
-	    MSGID=$(curl -s -X POST "$BOT_MSG_URL" \
+	    curl -s -X POST "$BOT_MSG_URL" \
 	    -d chat_id="$CHATID" \
 	    -d "disable_web_page_preview=true" \
 	    -d "parse_mode=html" \
-	    -d text="$1" \
-	    | cut -d ":" -f 4 | cut -d "," -f 1)
+	    -d text="$1"
 	fi
 }
 
@@ -313,18 +317,20 @@ tg_post_build()
 	#Show the Checksum alongwith caption
 	if [ $TG_SUPER = 1 ]
 	then
-	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
+	    MSGID=$(curl -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F message_thread_id="$TOPICID" \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2 | MD5: \`$MD5CHECK\`"
+	    -F caption="$2" \
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	else
-	    curl --progress-bar -F document=@"$1" "$BOT_BUILD_URL" \
+	    MSGID=$(curl -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2 | MD5: \`$MD5CHECK\`"
+	    -F caption="$2"
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
 
@@ -425,7 +431,6 @@ build_kernel()
 		else
 			if [ "$PTTG" = 1 ]
  			then
- 			    tg_del_msg
 				tg_post_build "error.log" "Build gagal setelah $((DIFF / 60)) mnt $((DIFF % 60)) dtk"
 				exit 2
 			else
@@ -490,13 +495,13 @@ gen_zip()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_del_msg
-		tg_post_msg "$TG_TIMESTAMP%0A%0A%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
 		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
+		tg_edit_msg "%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0ADurasi Build $((DIFF / 60)) menit $((DIFF % 60)) detik"
 	fi
 	cd ..
 }
 
+sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION=""/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel | tee -a error.log
