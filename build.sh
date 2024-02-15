@@ -55,10 +55,10 @@ VARIANT=Stock
 BASE=CLO
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/kernel_asus_sdm660/commits/codelinaro-eas"
+CL_URL="https://github.com/Tiktodz/android_kernel_asus_sdm636/commits/codelinaro-eas"
 
 # The name of the Kernel, to name the ZIP
-ZIPNAME="$KERNELNAME-Kernel-$BASE"
+ZIPNAME="$KERNELNAME-$BASE"
 
 # Build Author
 # Take care, it should be a universal and most probably, case-sensitive
@@ -227,7 +227,7 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
-	git clone --depth 1 https://github.com/Tiktodz/AnyKernel3.git -b eas AnyKernel3
+	git clone --depth 1 https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
 
 	if [ $BUILD_DTBO = 1 ]
 	then
@@ -245,8 +245,8 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		CLANG_VER="Snapdragon clang version 14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER x GCC 4.9"
+		CLANG_VER="Snapdragon Clang v14.1.5"
+		KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
