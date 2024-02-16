@@ -147,7 +147,7 @@ VERBOSE=0
 
 # Debug purpose. Send logs on every successfull builds
 # 1 is YES | 0 is NO(default)
-LOG_DEBUG=1
+LOG_DEBUG=0
 
 ##------------------------------------------------------##
 ##---------Do Not Touch Anything Beyond This------------##
@@ -246,7 +246,7 @@ exports()
 	if [ $COMPILER = "sdclang" ]
 	then
 		CLANG_VER="Snapdragon LLVM v14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER × GCC Toolchain v4.9"
+		KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
@@ -380,16 +380,6 @@ build_kernel()
 			NM=aarch64-linux-android-nm \
 			OBJCOPY=aarch64-linux-android-objcopy \
 			LD=aarch64-linux-android-$LINKER
-		)
-	elif [ $COMPILER = "jawa" ]
-	then
-		MAKE+=(
-			CROSS_COMPILE=aarch64-linux-gnu- \
-			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-			CLANG_TRIPLE=aarch64-linux-gnu- \
-			CC=clang \
-			HOSTCC=gcc \
-			HOSTCXX=g++ ${ClangMoreStrings}
 		)
 	fi
 
