@@ -486,7 +486,7 @@ gen_zip()
 	if [ "$PTTG" = 1 ]
  	then
 		tg_post_build "$ZIP_FINAL.zip" "Build Sukses"
-		tg_edit_msg "%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0A%0A<b>MD5 Checksum:</b>%0A<code>${MD5CHECK}</code>%0A<b>Durasi Build</b> $((DIFF / 60)) menit $((DIFF % 60)) detik"
+		tg_edit_msg "%E2%80%A2 <b>Versi Kernel: </b>$KERVER%0A%E2%80%A2 <b>Perangkat: </b>$MODEL [$DEVICE]%0A%E2%80%A2 <b>Commit: </b>$COMMIT_HEAD%0A%E2%80%A2 <b>Changelog:</b> <a href='$CL_URL'>Github</a>%0A%0A<b>Durasi Build:</b> $((DIFF / 60)) menit $((DIFF % 60)) detik"%0A<b>MD5 Checksum: </b><code>${MD5CHECK}</code>
 	fi
 	cd ..
 }
