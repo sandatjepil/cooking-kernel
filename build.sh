@@ -491,7 +491,7 @@ gen_zip()
 	cd ..
 }
 
-sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION=""/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
+sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
 clone
 exports
 build_kernel | tee -a error.log
