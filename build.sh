@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=TOM-EAS
+KERNELNAME=SkyWalker-Saisei
 CODENAME=Light
 VARIANT=Stock
-BASE=CLO
+BASE=EOL
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-eas"
+CL_URL="https://github.com/RyuujiX/android_kernel_asus_sdm660/commits/r7/eas"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$BASE"
@@ -491,7 +491,15 @@ gen_zip()
 	cd ..
 }
 
+git revert -n c9f749793fcae3f67ae8a76f59b989af990dd1b2
+git revert -n ab7401b6d504356e7117e8249075124df74340e0
+git revert -n e09f8770ea2152a0c1529a756233233658804978
+
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
+sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
+rm -rf KernelSU
+git clone --depth 1 https://github.com/sandatjepil/KernelSU.git
+
 clone
 exports
 build_kernel | tee -a error.log
