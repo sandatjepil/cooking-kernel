@@ -491,9 +491,19 @@ gen_zip()
 	cd ..
 }
 
+touch error.log
+echo "Building ${KERNELNAME} version ${KERVER}" >> error.log
+echo " " >> error.log
+
 git revert -n c9f749793fcae3f67ae8a76f59b989af990dd1b2
 git revert -n ab7401b6d504356e7117e8249075124df74340e0
 git revert -n e09f8770ea2152a0c1529a756233233658804978
+
+git fetch https://github.com/sandatjepil/kernel_asus_sdm660.git hmp
+git cherry-pick -n 80a86bf3b40fba732c291fb4340033d30d6026d4
+git cherry-pick -n 11c46e0f1d7dea9eddd8f0346552d5b24042618f
+git cherry-pick -n 7bde08be0ec00bcbf0bdd870585732aad278967d
+git cherry-pick -n cd347de216d4cabc5a88965f8186fce8b7b938b0
 
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
