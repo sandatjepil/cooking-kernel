@@ -222,7 +222,7 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 		# git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
-		TC_DIR=$KERNEL_DIR/sdclang
+		TC_DIR=$KERNEL_DIR/*/sdclang
   
 		# Toolchain Directory defaults to gcc
 		# GCC64_DIR=$KERNEL_DIR/gcc64
