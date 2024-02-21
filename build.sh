@@ -249,10 +249,10 @@ exports()
 		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
 		KBUILD_COMPILER_STRING="TheRagingBeast LLVM v17.0.0 #StayRaged™"
 		# export PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
-		PATH=$TC_DIR/bin/:$PATH
-		export LD_LIBRARY_PATH=$TC_DIR/lib:$LD_LIBRARY_PATH
-		export LD=ld.lld
-		export HOSTLD=ld.lld
+		PATH="$TC_DIR"/bin:$PATH
+		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
+		LD=ld.lld
+		HOSTLD=ld.lld
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
 	elif [ $COMPILER = "gcc" ]
 	then
@@ -267,7 +267,8 @@ exports()
 
 	export KBUILD_BUILD_USER ARCH SUBARCH PATH \
                KBUILD_COMPILER_STRING BOT_MSG_URL \
-               BOT_BUILD_URL BOT_EDIT_URL PROCS
+               BOT_BUILD_URL BOT_EDIT_URL PROCS \
+               LD_LIBRARY_PATH LD HOSTLD
 }
 
 ##---------------------------------------------------------##
@@ -367,9 +368,9 @@ build_kernel()
 	if [ $COMPILER = "sdclang" ]
 	then
 		MAKE+=(
-			CROSS_COMPILE=aarch64-linux-android- \
-			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-			CLANG_TRIPLE=aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+			# CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
 			HOSTCC=gcc \
 			HOSTCXX=g++ ${ClangMoreStrings}
