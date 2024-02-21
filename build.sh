@@ -211,8 +211,8 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
-		# git clone --depth 1 https://github.com/RyuujiX/SDClang -b 14 sdclang
-		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
+		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 17 sdclang
+		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
@@ -222,8 +222,8 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 		TC_DIR=$KERNEL_DIR/sdclang
   
 		# Toolchain Directory defaults to gcc
-		GCC64_DIR=$KERNEL_DIR/gcc64
-		GCC32_DIR=$KERNEL_DIR/gcc32
+		# GCC64_DIR=$KERNEL_DIR/gcc64
+		# GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -245,10 +245,15 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		CLANG_VER="Snapdragon LLVM v14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
-		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD_LIBRARY_PATH=$TC_DIR/lib LD=ld.lld HOSTLD=ld.lld"
+		# CLANG_VER="Snapdragon LLVM v14.1.5"
+		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
+		KBUILD_COMPILER_STRING="TheRagingBeast LLVM v17.0.0 #StayRaged™"
+		# export PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
+		PATH=$TC_DIR/bin/:$PATH
+		export LD_LIBRARY_PATH=$TC_DIR/lib:$LD_LIBRARY_PATH
+		export LD=ld.lld
+		export HOSTLD=ld.lld
+		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
