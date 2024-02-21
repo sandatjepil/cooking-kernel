@@ -160,7 +160,7 @@ LOG_DEBUG=0
 # shellcheck source=/etc/os-release
 export DISTRO=$(source /etc/os-release && echo "${NAME}")
 export PIPELINE_HOST=$(uname -a | awk '{print $2}')
-export KBUILD_BUILD_HOST=$DISTRO
+export KBUILD_BUILD_HOST=$(echo $DISTRO | awk '{print $1 $2}')
 export CI_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 TERM=xterm
 
@@ -254,9 +254,7 @@ exports()
 		# export PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
-		LD=ld.lld
-		HOSTLD=ld.lld
-		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
+		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as LD=ld.lld HOSTLD=ld.lld"
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-linux-android-gcc --version | head -n 1)
@@ -270,8 +268,8 @@ exports()
 
 	export KBUILD_BUILD_USER ARCH SUBARCH PATH \
                KBUILD_COMPILER_STRING BOT_MSG_URL \
-               BOT_BUILD_URL BOT_EDIT_URL PROCS \
-               LD_LIBRARY_PATH LD HOSTLD
+               BOT_BUILD_URL BOT_EDIT_URL PROCS #\
+               #LD_LIBRARY_PATH LD HOSTLD
 }
 
 ##---------------------------------------------------------##
