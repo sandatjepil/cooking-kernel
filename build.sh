@@ -372,8 +372,8 @@ build_kernel()
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
 			# CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
-			HOSTCC=gcc \
-			HOSTCXX=g++ ${ClangMoreStrings}
+			HOSTCC=clang \
+			HOSTCXX=clang++ ${ClangMoreStrings}
 		)
 	elif [ $COMPILER = "gcc" ]
 	then
