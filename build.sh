@@ -218,15 +218,15 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
-		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		# git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
 		TC_DIR=$KERNEL_DIR/sdclang
   
 		# Toolchain Directory defaults to gcc
-		# GCC64_DIR=$KERNEL_DIR/gcc64
-		# GCC32_DIR=$KERNEL_DIR/gcc32
+		GCC64_DIR=$KERNEL_DIR/gcc64
+		GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
@@ -250,9 +250,9 @@ exports()
 	then
 		# CLANG_VER="Snapdragon LLVM v14.1.5"
 		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
-		KBUILD_COMPILER_STRING="TheRagingBeast LLVM v16.0.0 #StayRaged™"
-		# export PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
-		PATH="$TC_DIR"/bin:$PATH
+		KBUILD_COMPILER_STRING="TheRagingBeast LLVM 16.0.0 #StayRaged™ × GCC Toolchain 4.9"
+		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
+		# PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
 		LD=ld.lld
 		HOSTLD=ld.lld
@@ -371,9 +371,9 @@ build_kernel()
 	if [ $COMPILER = "sdclang" ]
 	then
 		MAKE+=(
-			CROSS_COMPILE=aarch64-linux-gnu- \
-			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-			# CLANG_TRIPLE=aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-android- \
+			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+			CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
 			HOSTCC=clang \
 			HOSTCXX=clang++ ${ClangMoreStrings}
