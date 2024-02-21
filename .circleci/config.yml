@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   compile:
    docker:
-      - image: wizardprjkt/build:kernel
+      - image: panchajanya1999/archlinux:latest
    steps:
       - run:
           shell: /bin/bash
