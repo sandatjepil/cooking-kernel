@@ -49,10 +49,10 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=TOM-EAS
+KERNELNAME=Zeus
 CODENAME=Light
 VARIANT=Stock
-BASE=CLO
+BASE=EOL
 
 # Changelogs
 CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-eas"
@@ -250,7 +250,7 @@ exports()
 	then
 		# CLANG_VER="Snapdragon LLVM v14.1.5"
 		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
-		KBUILD_COMPILER_STRING="TheRagingBeast LLVM 16.0.0 #StayRaged™ × GCC Toolchain 4.9"
+		KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™ × GCC Toolchain 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		# PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
