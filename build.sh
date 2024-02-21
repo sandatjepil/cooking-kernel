@@ -211,7 +211,10 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
-		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 17 sdclang
+		# git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 17 sdclang
+		mkdir sdclang && cd sdclang
+		curl -L https://gitlab.com/varunhardgamer/trb_clang/-/archive/17/trb_clang-17.tar.gz -o trb_clang-17.tar.gz && tar -xzf trb_clang-17.tar.gz
+        cd ..
 		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
