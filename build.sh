@@ -147,7 +147,7 @@ VERBOSE=0
 
 # Debug purpose. Send logs on every successfull builds
 # 1 is YES | 0 is NO(default)
-LOG_DEBUG=0
+LOG_DEBUG=1
 
 ##------------------------------------------------------##
 ##---------Do Not Touch Anything Beyond This------------##
@@ -211,7 +211,7 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
-		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 17 sdclang
+		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 16 sdclang
 		# mkdir sdclang && cd sdclang
 		# curl -L https://gitlab.com/varunhardgamer/trb_clang/-/archive/17/trb_clang-17.tar.gz -o trb_clang-17.tar.gz && tar -xzf trb_clang-17.tar.gz
         # cd ..
@@ -250,7 +250,7 @@ exports()
 	then
 		# CLANG_VER="Snapdragon LLVM v14.1.5"
 		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
-		KBUILD_COMPILER_STRING="TheRagingBeast LLVM v17.0.0 #StayRaged™"
+		KBUILD_COMPILER_STRING="TheRagingBeast LLVM v16.0.0 #StayRaged™"
 		# export PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
