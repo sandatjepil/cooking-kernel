@@ -336,7 +336,7 @@ tg_post_build()
 	    -F chat_id="$CHATID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2"
+	    -F caption="$2" \
 	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
