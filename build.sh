@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #set -e
-
 KERNELDIR=$(pwd)
 KERNELNAME="TOM-EAS"
 DEVICENAME="X00T"
