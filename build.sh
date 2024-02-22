@@ -253,7 +253,7 @@ exports()
 		# KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™ × GCC Toolchain 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		# PATH="$TC_DIR"/bin:$PATH
-		LD_LIBRARY_PATH=$TC_DIR/lib
+		LD_LIBRARY_PATH=$TC_DIR/lib64:$LD_LIBRARY_PATH
 		LD=ld.lld
 		HOSTLD=ld.lld
 		ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
