@@ -368,9 +368,9 @@ build_kernel()
 	if [ $COMPILER = "sdclang" ]
 	then
 		MAKE+=(
-			CROSS_COMPILE=aarch64-linux-android- \
-			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-			CLANG_TRIPLE=aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+			CLANG_TRIPLE=clang \
 			CC=clang \
 			HOSTCC=clang \
 			HOSTCXX=clang++ ${ClangMoreStrings}
