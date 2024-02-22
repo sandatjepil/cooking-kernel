@@ -49,13 +49,13 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=TOM-EAS
+KERNELNAME=ZEUS
 CODENAME=Light
 VARIANT=Stock
 BASE=EOL
 
 # Changelogs
-CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/codelinaro-eas"
+CL_URL="https://github.com/sandatjepil/asus_kernel_sdm636/commits/zeus"
 
 # The name of the Kernel, to name the ZIP
 ZIPNAME="$KERNELNAME-$BASE"
@@ -125,7 +125,7 @@ fi
 
 # Sign the zipfile
 # 1 is YES | 0 is NO
-SIGN=1
+SIGN=0
 if [ $SIGN = 1 ]
 then
 	#Check for java
@@ -211,11 +211,8 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
-		# git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 16 sdclang
-		# mkdir sdclang && cd sdclang
-		# curl -L https://gitlab.com/varunhardgamer/trb_clang/-/archive/17/trb_clang-17.tar.gz -o trb_clang-17.tar.gz && tar -xzf trb_clang-17.tar.gz
-        # cd ..
-		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
+		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 17 sdclang
+		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
 		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
@@ -225,12 +222,12 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 		TC_DIR=$KERNEL_DIR/sdclang
   
 		# Toolchain Directory defaults to gcc
-		GCC64_DIR=$KERNEL_DIR/gcc64
-		GCC32_DIR=$KERNEL_DIR/gcc32
+		# GCC64_DIR=$KERNEL_DIR/gcc64
+		# GCC32_DIR=$KERNEL_DIR/gcc32
   	fi
 
 	msger -n "|| Cloning Anykernel ||"
-	git clone --depth 1 https://github.com/sandatjepil/AnyKernel3.git -b hmp AnyKernel3
+	git clone --depth 1 https://github.com/sandatjepil/AnyKernel3.git -b zeus AnyKernel3
 
 	if [ $BUILD_DTBO = 1 ]
 	then
@@ -248,11 +245,11 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		CLANG_VER="Snapdragon LLVM 14.1.5"
-		KBUILD_COMPILER_STRING="$CLANG_VER × GCC Toolchain 4.9"
+		CLANG_VER="TheRagingBeast LLVM 17"
+		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC Toolchain 4.9"
 		# KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™ × GCC Toolchain 4.9"
-		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
-		# PATH="$TC_DIR"/bin:$PATH
+		# PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
+		PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH=$TC_DIR/lib:$LD_LIBRARY_PATH
 		LD=ld.lld
 		HOSTLD=ld.lld
@@ -355,7 +352,7 @@ build_kernel()
 
 	if [ "$PTTG" = 1 ]
  	then
-		tg_post_msg "$TG_TIMESTAMP%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$KBUILD_COMPILER_STRING</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>%0A%E2%80%A2 <b>Commit: </b><code>$COMMIT_HEAD</code>%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
+		tg_post_msg "$TG_TIMESTAMP%0A%0A<b>$KBUILD_BUILD_VERSION CI Build Berjalan</b>%0A%E2%80%A2 <b>Docker OS: </b><code>$DISTRO</code>%0A%E2%80%A2 <b>Pipeline Host: </b><code>$PIPELINE_HOST</code>%0A%E2%80%A2 <b>Host Core: </b><code>$PROCS</code>%0A%E2%80%A2 <b>Compiler: </b><code>$CLANG_VER</code>%0A%E2%80%A2 <b>Linker: </b><code>$LINKER</code>%0A%E2%80%A2 <b>Branch: </b><code>$CI_BRANCH</code>%0A%E2%80%A2 <b>Commit: </b><code>$COMMIT_HEAD</code>%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
 	fi
 
 	make O=out $DEFCONFIG
@@ -375,8 +372,8 @@ build_kernel()
 			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
 			CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC=clang \
-			HOSTCC=gcc \
-			HOSTCXX=g++ ${ClangMoreStrings}
+			HOSTCC=clang \
+			HOSTCXX=clang++ ${ClangMoreStrings}
 		)
 	elif [ $COMPILER = "gcc" ]
 	then
@@ -500,7 +497,7 @@ gen_zip()
 	cd ..
 }
 
-echo "<b><#selectbg_g>$TG_TIMESTAMP</#></b>"&& echo " " && git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A)}' > changelog
+echo "<b><#selectbg_g>$TG_TIMESTAMP</#></b>"&& echo " " && git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A)}' >> changelog
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
 
 clone
