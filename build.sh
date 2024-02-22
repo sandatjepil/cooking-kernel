@@ -49,7 +49,7 @@ KERNEL_DIR="$(pwd)"
 BASEDIR="$(basename "$KERNEL_DIR")"
 
 # Kernel name
-KERNELNAME=Zeus
+KERNELNAME=TOM-EAS
 CODENAME=Light
 VARIANT=Stock
 BASE=EOL
@@ -211,15 +211,15 @@ TG_TIMESTAMP=$(TZ=Asia/Jakarta date '+%d %b %Y, %H:%M %Z')
 	elif [ $COMPILER = "sdclang" ]
 	then
 		msger -n "|| Cloning SDClang 14.1.5 x GCC 4.9 ||"
-		git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 16 sdclang
+		# git clone --depth 1 https://gitlab.com/varunhardgamer/trb_clang.git -b 16 sdclang
 		# mkdir sdclang && cd sdclang
 		# curl -L https://gitlab.com/varunhardgamer/trb_clang/-/archive/17/trb_clang-17.tar.gz -o trb_clang-17.tar.gz && tar -xzf trb_clang-17.tar.gz
         # cd ..
-		# wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
+		wget -O sdclangxgcc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdclangxgcc.tar.gz
 
   		# msger -n "|| Cloning GCC 4.9 ||"
-		git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
-		git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
+		# git clone --depth 1 https://github.com/Kneba/aarch64-linux-android-4.9 gcc64
+		# git clone --depth 1 https://github.com/Kneba/arm-linux-androideabi-4.9 gcc32
 
 		# Toolchain Directory defaults to sdclang
 		TC_DIR=$KERNEL_DIR/sdclang
@@ -248,9 +248,9 @@ exports()
  
 	if [ $COMPILER = "sdclang" ]
 	then
-		# CLANG_VER="Snapdragon LLVM v14.1.5"
-		# KBUILD_COMPILER_STRING="$CLANG_VER × GCC v4.9"
-		KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™ × GCC Toolchain 4.9"
+		CLANG_VER="Snapdragon LLVM 14.1.5"
+		KBUILD_COMPILER_STRING="$CLANG_VER × GCC Toolchain 4.9"
+		# KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™ × GCC Toolchain 4.9"
 		PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:$TC_DIR/bin/:$PATH
 		# PATH="$TC_DIR"/bin:$PATH
 		LD_LIBRARY_PATH="$TC_DIR"/lib:$LD_LIBRARY_PATH
@@ -500,7 +500,9 @@ gen_zip()
 	cd ..
 }
 
+echo "<b><#selectbg_g>$TG_TIMESTAMP</#></b>"&& echo " " && git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A)}' > changelog
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" ${KERNEL_DIR}/arch/arm64/configs/X00TD_defconfig
+
 clone
 exports
 build_kernel | tee -a error.log

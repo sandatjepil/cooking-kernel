@@ -10,9 +10,7 @@ jobs:
             sudo pacman -Sy --noconfirm git bc llvm lld inetutils python3 flex bison libc++ libxml2 python-pipx zip wget cpio jdk-openjdk tzdata
             sudo ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime && date
             # sudo pacman -Sy --noconfirm make
-            git clone --recursive --depth 1 https://github.com/karthik1896/kernel_asus_sdm660.git -b kernelsu kernel && cd kernel
-            git clone --depth 1 https://github.com/tiann/KernelSU.git
-            rm -rf AnyKernel3
+            git clone --recursive --depth 1 https://github.com/sandatjepil/asus_kernel_sdm636.git -b codelinaro-eas kernel && cd kernel
             curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/circle/build.sh > run.sh
             source run.sh
           no_output_timeout : 1h
