@@ -2,8 +2,9 @@
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="TOM-EAS"
+KERNELNAME="Zeus"
 DEVICENAME="X00T"
+sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
 BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -13,14 +14,14 @@ tg_post_msg(){
         if [ $TG_SUPER = 1 ]
         then
             curl -s -X POST "$BOT_MSG_URL" \
-            -d chat_id="$CHATID" \
-            -d message_thread_id="$TOPICID" \
+            -d chat_id="$TG_CHAT_ID" \
+            -d message_thread_id="$TG_TOPIC_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
             -d text="$1"
         else
             curl -s -X POST "$BOT_MSG_URL" \
-            -d chat_id="$CHATID" \
+            -d chat_id="$TG_CHAT_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
             -d text="$1"
@@ -39,7 +40,7 @@ tg_post_build()
 	    -F caption="$2"
 	else
 	    curl -F document=@"$1" "$BOT_BUILD_URL" \
-	    -F chat_id="$CHATID"  \
+	    -F chat_id="$TG_CHAT_ID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2"
@@ -65,8 +66,9 @@ export PATH="$KERNELDIR/trb_clang/bin:$PATH"
 export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER="Purrr"
-export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}")
-export KBUILD_COMPILER_STRING="$($KERNELDIR/trb_clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
+export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
+export KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™"
+# export KBUILD_COMPILER_STRING="$($KERNELDIR/trb_clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
 
 # Speed up build process
 MAKE="./makeparallel"

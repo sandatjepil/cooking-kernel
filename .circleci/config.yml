@@ -8,9 +8,9 @@ jobs:
           shell: /bin/bash
           command: |
             apt update -y && apt upgrade -y && apt install -y sudo
-            sudo apt install glibc-source nano bc bison ca-certificates curl flex gcc git libc6-dev libssl-dev openssl python-is-python3 ssh wget zip zstd make clang gcc-arm-linux-gnueabi software-properties-common build-essential libarchive-tools gcc-aarch64-linux-gnu tzdata -y && sudo apt install build-essential -y && sudo apt install libssl-dev libffi-dev libncurses5-dev zlib1g zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev make gcc -y && sudo apt install pigz -y && sudo apt install python2 -y && sudo apt install python3 -y && sudo apt install cpio -y && sudo apt install lld -y
+            sudo apt install glibc-source bc bison ca-certificates curl flex gcc git libc6-dev libssl-dev openssl python-is-python3 ssh wget zip zstd make gcc-arm-linux-gnueabi software-properties-common build-essential libarchive-tools gcc-aarch64-linux-gnu tzdata -y && sudo apt install build-essential -y && sudo apt install libssl-dev libffi-dev libncurses5-dev zlib1g zlib1g-dev libreadline-dev libbz2-dev libsqlite3-dev make gcc -y && sudo apt install pigz -y && sudo apt install python2 -y && sudo apt install python3 -y && sudo apt install cpio -y && sudo apt install lld -y
             sudo rm -rf /etc/localtime && sudo ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
-            git clone --recursive --depth 1 https://github.com/sandatjepil/asus_kernel_sdm636.git -b codelinaro-eas kernel && cd kernel
+            git clone --recursive --depth 1 https://github.com/sandatjepil/asus_kernel_sdm636.git -b zeus kernel && cd kernel
             curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/zeus/build.sh > run.sh
             source run.sh
           no_output_timeout : 1h
