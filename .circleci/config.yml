@@ -8,7 +8,7 @@ jobs:
           shell: /bin/bash
           command: |
             apt update -y && apt upgrade -y && apt install -y sudo
-            sudo apt install -y glibc-source git bc llvm lld python3 flex bison libc++-17-dev libxml2 pipx zip wget cpio in tzdata || exit 1
+            sudo apt install -y glibc-source git bc llvm lld python3 flex bison libc++-17-dev libxml2 pipx zip wget cpio tzdata || exit 1
             sudo ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime && date
             git clone --recursive --depth 1 https://github.com/sandatjepil/asus_kernel_sdm636.git -b codelinaro-eas kernel && cd kernel
             curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/zeus/build.sh > run.sh
