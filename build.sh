@@ -138,7 +138,7 @@ ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" | tee -a changelog
-git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>}' | tee -a changelog
+git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' | tee -a changelog
 
 echo "**** Copying Image.gz-dtb ****"
 cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $ANYKERNEL3_DIR/
