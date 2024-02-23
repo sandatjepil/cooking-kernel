@@ -106,10 +106,10 @@ make -j$(nproc --all) O=out LLVM=1\
 		STRIP="$KERNELDIR/trb_clang/bin/llvm-strip" \
 		OBJCOPY="$KERNELDIR/trb_clang/bin/llvm-objcopy" \
 		OBJDUMP="$KERNELDIR/trb_clang/bin/llvm-objdump" \
-		# CLANG_TRIPLE=aarch64-linux-gnu- \
 		CROSS_COMPILE="$KERNELDIR/trb_clang/bin/clang" \
-                CROSS_COMPILE_COMPAT="$KERNELDIR/trb_clang/bin/clang" \
-                CROSS_COMPILE_ARM32="$KERNELDIR/trb_clang/bin/clang" 2>&1 | tee -a error.log
+        CROSS_COMPILE_COMPAT="$KERNELDIR/trb_clang/bin/clang" \
+        CROSS_COMPILE_ARM32="$KERNELDIR/trb_clang/bin/clang" 2>&1 | tee -a error.log
+		# CLANG_TRIPLE=aarch64-linux-gnu- \
 
 
 BUILD_END=$(date +"%s")
