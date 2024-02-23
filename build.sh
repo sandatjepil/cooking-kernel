@@ -47,7 +47,7 @@ tg_post_build()
 	fi
 }
 
-tg_post_msg "$(date)%0A<b>Build $KERNELNAME Kernel Started!</b>%0A<a href=$CIRCLE_BUILD_URL>Build URL click here!</a>"
+tg_post_msg "$(date)%0ABuilding '$KERNELNAME'%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
 
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
 echo "trb_clang not found! Cloning..."
@@ -129,7 +129,6 @@ ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" | tee -a changelog
-echo " " | tee -a changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A)}' | tee -a changelog
 
 echo "**** Copying Image.gz-dtb ****"
