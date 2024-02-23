@@ -2,9 +2,11 @@
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="Zeus"
+KERNELNAME="TOM-EAS"
 DEVICENAME="X00T"
-sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" arch/arm64/configs/X00TD_defconfig
+VARIANT="CLO"
+# sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" arch/arm64/configs/X00TD_defconfig
+sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
 BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -93,6 +95,7 @@ echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out
 make -j$(nproc --all) O=out LLVM=1\
 		ARCH=arm64 \
+		SUBARCH=arm64 \
 		AS="$KERNELDIR/trb_clang/bin/llvm-as" \
 		CC="$KERNELDIR/trb_clang/bin/clang" \
 		LD="$KERNELDIR/trb_clang/bin/ld.lld" \
@@ -147,7 +150,7 @@ sed -i "s/kernel.made=.*/kernel.made=$KBUILD_BUILD_USER/g" anykernel.sh
 sed -i "s/kernel.version=.*/kernel.version=$KERVER/g" anykernel.sh
 sed -i "s/message.word=.*/message.word=Kernel need some time to settle./g" anykernel.sh
 sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
-sed -i "s/build.type=.*/build.type=EOL/g" anykernel.sh
+sed -i "s/build.type=.*/build.type=$VARIANT/g" anykernel.sh
 sed -i "s/supported.versions=.*/supported.versions=10-13/g" anykernel.sh
 sed -i "s/device.name1=.*/device.name1=X00TD/g" anykernel.sh
 sed -i "s/device.name2=.*/device.name2=X00T/g" anykernel.sh
@@ -161,7 +164,7 @@ sed -i "s/KVER/$KERVER/g" aroma-config
 sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
 sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 sed -i "s/KBDATE/$DATE/g" aroma-config
-sed -i "s/KVARIANT/EOL/g" aroma-config
+sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 cd ../../../..
 
 zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
