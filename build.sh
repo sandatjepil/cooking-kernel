@@ -92,7 +92,7 @@ echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
 echo -e "$blue***********************************************"
 echo "          BUILDING KERNEL          "
 echo -e "***********************************************$nocol"
-make $KERNEL_DEFCONFIG O=out | tee -a error.log
+make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 make -j$(nproc --all) O=out LLVM=1\
 		ARCH=arm64 \
 		SUBARCH=arm64 \
@@ -106,10 +106,10 @@ make -j$(nproc --all) O=out LLVM=1\
 		STRIP="$KERNELDIR/trb_clang/bin/llvm-strip" \
 		OBJCOPY="$KERNELDIR/trb_clang/bin/llvm-objcopy" \
 		OBJDUMP="$KERNELDIR/trb_clang/bin/llvm-objdump" \
-		CLANG_TRIPLE=aarch64-linux-gnu- \
+		# CLANG_TRIPLE=aarch64-linux-gnu- \
 		CROSS_COMPILE="$KERNELDIR/trb_clang/bin/clang" \
                 CROSS_COMPILE_COMPAT="$KERNELDIR/trb_clang/bin/clang" \
-                CROSS_COMPILE_ARM32="$KERNELDIR/trb_clang/bin/clang" | tee -a error.log
+                CROSS_COMPILE_ARM32="$KERNELDIR/trb_clang/bin/clang" 2>&1 | tee -a error.log
 
 
 BUILD_END=$(date +"%s")
