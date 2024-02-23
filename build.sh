@@ -92,7 +92,7 @@ echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
 echo -e "$blue***********************************************"
 echo "          BUILDING KERNEL          "
 echo -e "***********************************************$nocol"
-make $KERNEL_DEFCONFIG O=out
+make $KERNEL_DEFCONFIG O=out | tee -a error.log
 make -j$(nproc --all) O=out LLVM=1\
 		ARCH=arm64 \
 		SUBARCH=arm64 \
