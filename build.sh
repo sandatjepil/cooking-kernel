@@ -49,7 +49,7 @@ tg_post_build()
 	fi
 }
 
-tg_post_msg "$(date)%0ABuilding '$KERNELNAME'%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
+tg_post_msg "$(date '+%d %m %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICENAME%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
 
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
 echo "trb_clang not found! Cloning..."
@@ -98,6 +98,8 @@ make -j$(nproc --all) O=out LLVM=1\
 		SUBARCH=arm64 \
 		AS="$KERNELDIR/trb_clang/bin/llvm-as" \
 		CC="$KERNELDIR/trb_clang/bin/clang" \
+		HOSTCC="$KERNELDIR/trb_clang/bin/clang" \
+		HOSTCXX="$KERNELDIR/trb_clang/bin/clang++" \
 		LD="$KERNELDIR/trb_clang/bin/ld.lld" \
 		AR="$KERNELDIR/trb_clang/bin/llvm-ar" \
 		NM="$KERNELDIR/trb_clang/bin/llvm-nm" \
@@ -108,6 +110,10 @@ make -j$(nproc --all) O=out LLVM=1\
 		CROSS_COMPILE="$KERNELDIR/trb_clang/bin/clang" \
                 CROSS_COMPILE_COMPAT="$KERNELDIR/trb_clang/bin/clang" \
                 CROSS_COMPILE_ARM32="$KERNELDIR/trb_clang/bin/clang" | tee -a error.log
+
+
+BUILD_END=$(date +"%s")
+DIFF=$(($BUILD_END - $BUILD_START))
 
 echo "**** Kernel Compilation Completed ****"
 echo "**** Verify Image.gz-dtb ****"
@@ -132,7 +138,7 @@ ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" | tee -a changelog
-git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A)}' | tee -a changelog
+git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>}' | tee -a changelog
 
 echo "**** Copying Image.gz-dtb ****"
 cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $ANYKERNEL3_DIR/
@@ -170,9 +176,6 @@ cd ../../../..
 zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
 
 cd ..
-
-BUILD_END=$(date +"%s")
-DIFF=$(($BUILD_END - $BUILD_START))
 
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_KERNEL_ZIP" "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
