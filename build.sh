@@ -52,12 +52,15 @@ tg_post_build()
 tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICENAME%0ABuild URL <a href='$CIRCLE_BUILD_URL'>Here</a>"
 
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
-echo "trb_clang not found! Cloning..."
-# if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
-if ! $(mkdir -p trb_clang && cd trb_clang && bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023 && cd ..); then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
+  echo "trb_clang not found! Cloning..."
+  # if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
+  mkdir -p trb_clang && cd trb_clang
+  bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023
+  cd ..
+  if ! [ -f "$KERNELDIR/trb_clang/bin/clang" ]; then
+    echo "Cloning failed! Aborting..."
+    exit 1
+  fi
 fi
 
 ## Copy this script inside the kernel directory
@@ -128,11 +131,12 @@ fi
 # Anykernel3 time!!
 echo "**** Verifying AnyKernel3 Directory ****"
 if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
-echo "AnyKernel3 not found! Cloning..."
-if ! git clone --depth=1 -b zeus https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
+  echo "AnyKernel3 not found! Cloning..."
+  if ! git clone --depth=1 -b zeus https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
+    tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to Clone Anykernel, Sending image file instead"
+    echo "Cloning failed! Aborting..."
+    exit 1
+  fi
 fi
 
 ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
