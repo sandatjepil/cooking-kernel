@@ -2,10 +2,10 @@
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="ZEUS"
-DEVICENAME="X00T"
+KERNELNAME="AntiSocialist"
+DEVICENAME="X00TD"
 VARIANT="EOL"
-sed -i "s/CONFIG_LOCALVERSION=.*/# CONFIG_LOCALVERSION is not set/g" arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
@@ -49,11 +49,12 @@ tg_post_build()
 	fi
 }
 
-tg_post_msg "$(date '+%d %m %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICENAME%0A<a href='$CIRCLE_BUILD_URL'>Build URL</a>"
+tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICENAME%0ABuild URL <a href='$CIRCLE_BUILD_URL'>Here</a>"
 
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
 echo "trb_clang not found! Cloning..."
-if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
+# if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
+if ! mkdir -p trb_clang && cd trb_clang && bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023 && cd ..; then
 echo "Cloning failed! Aborting..."
 exit 1
 fi
@@ -69,8 +70,8 @@ export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER="Purrr"
 export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
-export KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™"
-# export KBUILD_COMPILER_STRING="$($KERNELDIR/trb_clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
+# export KBUILD_COMPILER_STRING="TheRagingBeast LLVM 17.0.0 #StayRaged™"
+export KBUILD_COMPILER_STRING="$($KERNELDIR/trb_clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -137,7 +138,7 @@ fi
 ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
 
 # Generating Changelog
-echo "<b><#selectbg_g>$(date)</#></b>" | tee -a changelog
+echo "<b><#selectbg_g>$(date)</#></b>" > changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' | tee -a changelog
 
 echo "**** Copying Image.gz-dtb ****"
