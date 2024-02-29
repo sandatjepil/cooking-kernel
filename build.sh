@@ -54,7 +54,7 @@ tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICE
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
 echo "trb_clang not found! Cloning..."
 # if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
-if ! mkdir -p trb_clang && cd trb_clang && bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023 && cd ..; then
+if ! $(mkdir -p trb_clang && cd trb_clang && bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023 && cd ..); then
 echo "Cloning failed! Aborting..."
 exit 1
 fi
