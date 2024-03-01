@@ -55,7 +55,7 @@ if ! [ -d "$KERNELDIR/trb_clang" ]; then
   echo "trb_clang not found! Cloning..."
   # if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
   mkdir -p trb_clang && cd trb_clang
-  bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=05012024
+  bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023
   cd ..
   if ! [ -f "$KERNELDIR/trb_clang/bin/clang" ]; then
     echo "Cloning failed! Aborting..."
