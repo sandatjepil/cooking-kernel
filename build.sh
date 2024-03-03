@@ -68,6 +68,7 @@ KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%Y%m%d')
 FINAL_KERNEL_ZIP="$KERNELNAME-$DEVICENAME-$(date '+%Y%m%d-%H%M').zip"
 KERVER=$(make kernelversion)
+export KBUILD_BUILD_TIMESTAMP=$(date)
 export PATH="$KERNELDIR/trb_clang/bin:$PATH"
 export ARCH=arm64
 export SUBARCH=arm64
@@ -183,4 +184,5 @@ zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore 
 cd ..
 
 echo "**** Uploading your zip now ****"
-tg_post_build "$FINAL_KERNEL_ZIP" "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+tg_post_build "$FINAL_KERNEL_ZIP" "Changelog: $(git log --oneline -n10 | cut -d" " -f2-)
+Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
