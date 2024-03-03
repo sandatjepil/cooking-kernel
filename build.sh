@@ -184,5 +184,8 @@ zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore 
 cd ..
 
 echo "**** Uploading your zip now ****"
-tg_post_build "$FINAL_KERNEL_ZIP" "Changelog: $(git log --oneline -n10 | cut -d" " -f2-)
-Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds"
+tg_post_build "$FINAL_KERNEL_ZIP" "*Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds*
+
+\`\`\`Changelog
+$(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
+\`\`\`"
