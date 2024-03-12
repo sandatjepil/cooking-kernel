@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -f kernel/arch64/configs/X00TD_defconfig ]; then
+if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
 else
     exit 1
