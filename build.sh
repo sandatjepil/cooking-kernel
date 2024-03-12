@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ -f kernel/arch64/configs/X00TD_defconfig ]; then
+    cd kernel
+else
+    exit 1
+fi
+
 #set -e
 KERNELDIR=$(pwd)
 KERNELNAME="AntiSocialist"
@@ -50,6 +56,8 @@ tg_post_build()
 }
 
 tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICENAME%0ABuild URL <a href='$CIRCLE_BUILD_URL'>Here</a>"
+
+
 
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
   echo "trb_clang not found! Cloning..."
