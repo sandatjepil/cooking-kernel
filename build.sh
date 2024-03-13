@@ -8,10 +8,13 @@ fi
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="AntiSocialist"
+KERNELNAME="TheOneMemory"
 DEVICENAME="X00TD"
-VARIANT="EOL"
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
+VARIANT="CLO"
+
+rm -rf KernelSU
+git clone https://github.com/sandatjepil/KernelSU
+# sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
@@ -193,8 +196,13 @@ zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore 
 cd ..
 
 echo "**** Uploading your zip now ****"
-tg_post_build "$FINAL_KERNEL_ZIP" "*Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds*
-
-\`\`\`Changelog
+tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
+$(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds
+🐧 *Linux Version*
+${KERVER}
+🛠 *Compiler*
+${KBUILD_COMPILER_STRING}
+🆕 *Changelogs*
+\`\`\`
 $(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
 \`\`\`"
