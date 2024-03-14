@@ -1,4 +1,5 @@
 #!/bin/bash
+export TZ="Asia/Jakarta"
 
 if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
@@ -7,7 +8,6 @@ else
 fi
 
 #set -e
-export TZ="Asia/Jakarta"
 KERNELDIR=$(pwd)
 KERNELNAME="AntiSocialist-NoKSU"
 DEVICENAME="X00TD"
