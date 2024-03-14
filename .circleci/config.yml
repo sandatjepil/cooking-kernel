@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   compile:
    docker:
-      - image: debian:bookworm-slim
+      - image: ubuntu:latest
    steps:
       - run:
           shell: /bin/bash
