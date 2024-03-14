@@ -15,7 +15,7 @@ VARIANT="EOL"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "azure"
-COMP="azure"
+COMP="neutron"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
@@ -75,7 +75,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
-    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023
+    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
