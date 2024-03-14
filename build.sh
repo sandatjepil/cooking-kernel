@@ -74,9 +74,8 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
-    sed -i "s/CONFIG_CC_STACKPROTECTOR_STRONG=.*/# CONFIG_CC_STACKPROTECTOR_STRONG is not set/g" arch/arm64/configs/X00TD_defconfig
     mkdir -p clang && cd clang
-    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S
+    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
@@ -134,7 +133,7 @@ make -j$(nproc --all) O=out LLVM=1\
 		STRIP="$KERNELDIR/clang/bin/llvm-strip" \
 		OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 		OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-		CLANG_TRIPLE=aarch64-linux-gnu- \
+		CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
 		CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
         CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
         CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
