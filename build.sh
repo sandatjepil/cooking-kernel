@@ -116,7 +116,7 @@ make -j$(nproc --all) O=out LLVM=1\
 		CC="$KERNELDIR/trb_clang/bin/clang" \
 		HOSTCC="$KERNELDIR/trb_clang/bin/clang" \
 		HOSTCXX="$KERNELDIR/trb_clang/bin/clang++" \
-		LD="$KERNELDIR/trb_clang/bin/ld.lld" \
+		LD="ld.lld" \
 		AR="$KERNELDIR/trb_clang/bin/llvm-ar" \
 		NM="$KERNELDIR/trb_clang/bin/llvm-nm" \
 		STRIP="$KERNELDIR/trb_clang/bin/llvm-strip" \
