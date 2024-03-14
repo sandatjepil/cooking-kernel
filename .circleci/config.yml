@@ -2,13 +2,13 @@ version: 2.1
 jobs:
   compile:
     docker:
-      - image: debian:stable
+      - image: archlinux:latest
     steps:
       - run:
           shell: /bin/bash
           command: |
-            apt update -y && apt upgrade -y && apt install -y sudo
-            sudo apt install -y binutils glibc-source bc bison ca-certificates curl flex gcc git libc6-dev libssl-dev openssl python-is-python3 wget zip zstd make gcc-arm-linux-gnueabi software-properties-common build-essential libarchive-tools gcc-aarch64-linux-gnu tzdata || exit 1
+            pacman update -Syu && pacman -Sy sudo
+            sudo pacman -Sy binutils glibc-source bc bison ca-certificates curl flex gcc git libc6-dev libssl-dev openssl python-is-python3 wget zip zstd make gcc-arm-linux-gnueabi software-properties-common build-essential libarchive-tools gcc-aarch64-linux-gnu tzdata || exit 1
             git clone --recursive --depth 15 https://github.com/sandatjepil/asus_kernel_sdm636.git -b zeus-pure kernel
             curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/zeus/build.sh > run.sh
             source run.sh
