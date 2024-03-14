@@ -3,8 +3,6 @@ jobs:
   compile:
     docker:
       - image: ubuntu:latest
-        environment:
-          TZ:"Asia/Jakarta"
     steps:
       - run:
           shell: /bin/bash

@@ -7,6 +7,7 @@ else
 fi
 
 #set -e
+export TZ="Asia/Jakarta"
 KERNELDIR=$(pwd)
 KERNELNAME="AntiSocialist-NoKSU"
 DEVICENAME="X00TD"
