@@ -74,6 +74,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
+    sed -i "s/CONFIG_CC_STACKPROTECTOR_STRONG=.*/# CONFIG_CC_STACKPROTECTOR_STRONG is not set/g" arch/arm64/configs/X00TD_defconfig
     mkdir -p clang && cd clang
     bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S
     cd ..
