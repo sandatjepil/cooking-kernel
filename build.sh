@@ -8,13 +8,11 @@ fi
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="TheOneMemory"
+KERNELNAME="AntiSocialist"
 DEVICENAME="X00TD"
-VARIANT="CLO"
+VARIANT="EOL"
 
-rm -rf KernelSU
-git clone https://github.com/sandatjepil/KernelSU
-# sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
@@ -65,7 +63,8 @@ tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICE
 if ! [ -d "$KERNELDIR/trb_clang" ]; then
   echo "trb_clang not found! Cloning..."
   # if ! git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch trb_clang; then
-  if ! git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch trb_clang; then
+  # if ! git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch trb_clang; then
+  if ! git clone https://gitlab.com/Panchajanya1999/azure-clang.git --depth=1 --single-branch trb_clang; then
   # mkdir -p trb_clang && cd trb_clang
   # bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=11032023
   # cd ..
