@@ -9,8 +9,7 @@ jobs:
           command: |
             pacman -Sy --noconfirm sudo && sudo pacman -Sy --noconfirm binutils bc bison ncurses ca-certificates curl flex clang gcc git wget zip zstd make tzdata || exit 1
             git clone --recursive --depth 15 https://github.com/sandatjepil/asus_kernel_sdm636.git -b zeus-pure kernel
-            curl https://raw.githubusercontent.com/sandatjepil/cooking-kernel/zeus/build.sh > run.sh
-            source run.sh
+            source <(curl -s https://raw.githubusercontent.com/sandatjepil/cooking-kernel/zeus/build.sh)
           no_output_timeout : 1h
 workflows:
   version: 2.1

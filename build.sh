@@ -14,7 +14,7 @@ DEVICENAME="X00TD"
 VARIANT="EOL"
 
 # set compiler
-# "neutron" || "trb" || "ew" || "azure"
+# "neutron" || "trb" || "ew"
 COMP="neutron"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
@@ -66,15 +66,13 @@ tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICE
 
 if ! [ -d "$KERNELDIR/clang" ]; then
   echo "Clang not found! Cloning..."
-  if [ $COMP = "azure" ]; then
-    git clone https://gitlab.com/Panchajanya1999/azure-clang.git --depth=1 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "trb" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
-    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=09092023
+    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=16012023
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
