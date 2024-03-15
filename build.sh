@@ -72,7 +72,8 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
-    bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S=16012023
+    curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+    bash antman -S=16012023
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
