@@ -66,7 +66,7 @@ tg_post_msg "$(date '+%d %b %Y, %H:%M %Z')%0A%0ABuilding $KERNELNAME for $DEVICE
 
 if ! [ -d "$KERNELDIR/clang" ]; then
   echo "Clang not found! Cloning..."
-  elif [ $COMP = "trb" ]; then
+  if [ $COMP = "trb" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
