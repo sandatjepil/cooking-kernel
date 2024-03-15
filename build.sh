@@ -19,6 +19,7 @@ COMP="neutron"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
+sed -i "s/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g" arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
 BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
@@ -73,7 +74,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
     curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-    bash antman -S=16012023
+    bash antman -S=09092023
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
