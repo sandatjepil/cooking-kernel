@@ -15,7 +15,7 @@ VARIANT="EOL"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "azure"
-COMP="ew"
+COMP="azure"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
