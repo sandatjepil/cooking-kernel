@@ -9,7 +9,7 @@ fi
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="AntiSocialist-NoKSU"
+KERNELNAME="AntiSocialist-KSU"
 DEVICENAME="X00TD"
 VARIANT="EOL"
 
