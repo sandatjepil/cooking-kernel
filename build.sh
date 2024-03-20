@@ -4,6 +4,8 @@ export TZ="Asia/Jakarta"
 if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
 else
+    echo "Kernel Cloning Failed! aborting..."
+    tg_post_msg "Clone Failed"
     exit 1
 fi
 
@@ -15,7 +17,7 @@ VARIANT="EOL"
 
 # set compiler
 # "neutron" || "trb" || "ew"
-COMP="neutron"
+COMP="ew"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-AntiSocialist"/g' arch/arm64/configs/X00TD_defconfig
 sed -i "s/CONFIG_WIREGUARD=.*/# CONFIG_WIREGUARD is not set/g" arch/arm64/configs/X00TD_defconfig
@@ -205,7 +207,7 @@ cd ..
 
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
-$(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds
+$(($DIFF / 60)) minutes and $(($DIFF % 60)) seconds
 🐧 *Linux Version*
 ${KERVER}
 🛠 *Compiler*
