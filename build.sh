@@ -73,7 +73,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   if [ $COMP = "trb" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "proton" ]; then
-    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-14 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
   elif [ $COMP = "neutron" ]; then
