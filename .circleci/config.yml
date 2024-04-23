@@ -2,12 +2,11 @@ version: 2.1
 jobs:
   compile:
     docker:
-      - image: archlinux:latest
+      - image: xyzuan/xdocker:latest
     steps:
       - run:
           shell: /bin/bash
           command: |
-            pacman -Sy --noconfirm sudo && sudo pacman -Sy --noconfirm base-devel bc bison ncurses libelf python ca-certificates curl flex clang gcc git wget zip zstd make openssl tzdata || exit 1
             git clone --recursive --depth 15 https://github.com/sandatjepil/asus_kernel_sdm636.git -b r42 kernel
             source <(curl -s https://raw.githubusercontent.com/sandatjepil/cooking-kernel/sky/build.sh)
           no_output_timeout : 1h
