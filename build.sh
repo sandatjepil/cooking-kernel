@@ -17,7 +17,7 @@ VARIANT="CLO"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "proton"
-# COMP="proton"
+COMP="proton"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".Lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -68,35 +68,26 @@ Powered by <b>`source /etc/os-release && echo ${NAME}`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 
-# if ! [ -d "$KERNELDIR/clang" ]; then
-  # echo "Clang not found! Cloning..."
-  # if [ $COMP = "trb" ]; then
-    # git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  # elif [ $COMP = "proton" ]; then
-    # git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  # elif [ $COMP = "ew" ]; then
-    # git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  # elif [ $COMP = "neutron" ]; then
-    # mkdir -p clang && cd clang
-    # curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-    # bash antman -S=09092023
-    # cd ..
-    # if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
-      # echo "Cloning failed! Aborting..."; exit 1
-    # fi
-  # else
-    # echo "Clang unavailable! Aborting..."; exit 1
-  # fi
-# fi
-
-git clone --depth=1 https://github.com/mvaisakh/gcc-arm64.git $KERNELDIR/gcc64
-git clone --depth=1 https://github.com/mvaisakh/gcc-arm.git $KERNELDIR/gcc32
-
-GCC64_DIR=$KERNELDIR/gcc64
-GCC32_DIR=$KERNELDIR/gcc32
-
-# KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-elf-gcc --version | head -n 1)
-PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
+if ! [ -d "$KERNELDIR/clang" ]; then
+  echo "Clang not found! Cloning..."
+  if [ $COMP = "trb" ]; then
+    git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  elif [ $COMP = "proton" ]; then
+    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  elif [ $COMP = "ew" ]; then
+    git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  elif [ $COMP = "neutron" ]; then
+    mkdir -p clang && cd clang
+    curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+    bash antman -S=09092023
+    cd ..
+    if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
+      echo "Cloning failed! Aborting..."; exit 1
+    fi
+  else
+    echo "Clang unavailable! Aborting..."; exit 1
+  fi
+fi
 
 ## Copy this script inside the kernel directory
 KERNEL_DEFCONFIG=X00TD_defconfig
@@ -148,11 +139,15 @@ make $KERNEL_DEFCONFIG O=out 2>&1 | tee error.log
         # CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
         # CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
 make -j$(nproc --all) O=out \
-    CROSS_COMPILE_ARM32=arm-eabi- \
-    CROSS_COMPILE=aarch64-elf- \
-    AR=aarch64-elf-ar \
-    OBJDUMP=aarch64-elf-objdump \
-    STRIP=aarch64-elf-strip 2>&1 | tee build.log
+                CC=clang \
+                CROSS_COMPILE=aarch64-linux-gnu- \
+                CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+                AR=llvm-ar \
+                NM=llvm-nm \
+                OBJCOPY=llvm-objcopy \
+                OBJDUMP=llvm-objdump \
+                CLANG_TRIPLE=aarch64-linux-gnu- \
+                STRIP=llvm-strip 2>&1 | tee error.log
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
