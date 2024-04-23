@@ -17,7 +17,7 @@ VARIANT="CLO"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "proton"
-COMP="proton"
+# COMP="proton"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".Lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -64,30 +64,39 @@ tg_post_build()
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Compiling <b>$KERNELNAME</b> for <b>$DEVICENAME</b>.
-Powered by <b>`source /etc/os-release && echo ${NAME}`</b>, with <b>${COMP}</b> Clang.
+Powered by <b>`source /etc/os-release && echo ${NAME}`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 
-if ! [ -d "$KERNELDIR/clang" ]; then
-  echo "Clang not found! Cloning..."
-  if [ $COMP = "trb" ]; then
-    git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  elif [ $COMP = "proton" ]; then
-    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  elif [ $COMP = "ew" ]; then
-    git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
-  elif [ $COMP = "neutron" ]; then
-    mkdir -p clang && cd clang
-    curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-    bash antman -S=09092023
-    cd ..
-    if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
-      echo "Cloning failed! Aborting..."; exit 1
-    fi
-  else
-    echo "Clang unavailable! Aborting..."; exit 1
-  fi
-fi
+# if ! [ -d "$KERNELDIR/clang" ]; then
+  # echo "Clang not found! Cloning..."
+  # if [ $COMP = "trb" ]; then
+    # git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  # elif [ $COMP = "proton" ]; then
+    # git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  # elif [ $COMP = "ew" ]; then
+    # git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+  # elif [ $COMP = "neutron" ]; then
+    # mkdir -p clang && cd clang
+    # curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+    # bash antman -S=09092023
+    # cd ..
+    # if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
+      # echo "Cloning failed! Aborting..."; exit 1
+    # fi
+  # else
+    # echo "Clang unavailable! Aborting..."; exit 1
+  # fi
+# fi
+
+git clone --depth=1 https://github.com/mvaisakh/gcc-arm64.git $KERNELDIR/gcc64
+git clone --depth=1 https://github.com/mvaisakh/gcc-arm.git $KERNELDIR/gcc32
+
+GCC64_DIR=$KERNELDIR/gcc64
+GCC32_DIR=$KERNELDIR/gcc32
+
+# KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-elf-gcc --version | head -n 1)
+PATH=$GCC64_DIR/bin/:$GCC32_DIR/bin/:/usr/bin:$PATH
 
 ## Copy this script inside the kernel directory
 KERNEL_DEFCONFIG=X00TD_defconfig
@@ -95,13 +104,13 @@ DATE=$(date '+%Y%m%d')
 FINAL_KERNEL_ZIP="$KERNELNAME-$DEVICENAME-$(date '+%Y%m%d-%H%M').zip"
 KERVER=$(make kernelversion)
 export KBUILD_BUILD_TIMESTAMP=$(date)
-export PATH="$KERNELDIR/clang/bin:$PATH"
+# export PATH="$KERNELDIR/clang/bin:$PATH"
 export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER="Purrr"
 # export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
 export KBUILD_BUILD_HOST="ElectroWizard"
-export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
+# export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -121,24 +130,29 @@ echo -e "$blue***********************************************"
 echo "          BUILDING KERNEL          "
 echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out 2>&1 | tee error.log
-make -j$(nproc --all) O=out LLVM=1\
-		ARCH=arm64 \
-		SUBARCH=arm64 \
-		AS="$KERNELDIR/clang/bin/llvm-as" \
-		CC="$KERNELDIR/clang/bin/clang" \
-		HOSTCC="$KERNELDIR/clang/bin/clang" \
-		HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-		LD="$KERNELDIR/clang/bin/ld.lld" \
-		AR="$KERNELDIR/clang/bin/llvm-ar" \
-		NM="$KERNELDIR/clang/bin/llvm-nm" \
-		STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-		OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-		OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-		CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
-        CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
-        CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
-
+# make -j$(nproc --all) O=out LLVM=1\
+		# ARCH=arm64 \
+		# SUBARCH=arm64 \
+		# AS="$KERNELDIR/clang/bin/llvm-as" \
+		# CC="$KERNELDIR/clang/bin/clang" \
+		# HOSTCC="$KERNELDIR/clang/bin/clang" \
+		# HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+		# LD="$KERNELDIR/clang/bin/ld.lld" \
+		# AR="$KERNELDIR/clang/bin/llvm-ar" \
+		# NM="$KERNELDIR/clang/bin/llvm-nm" \
+		# STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+		# OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+		# OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+		# CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+		# CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
+        # CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
+        # CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
+make -j$(nproc --all) O=out \
+    CROSS_COMPILE_ARM32=arm-eabi- \
+    CROSS_COMPILE=aarch64-elf- \
+    AR=aarch64-elf-ar \
+    OBJDUMP=aarch64-elf-objdump \
+    STRIP=aarch64-elf-strip 2>&1 | tee build.log
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
