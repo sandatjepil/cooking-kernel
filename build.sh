@@ -101,7 +101,7 @@ export SUBARCH=arm64
 export KBUILD_BUILD_USER="Purrr"
 # export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
 export KBUILD_BUILD_HOST="ElectroWizard"
-# export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
+export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
 
 # Speed up build process
 MAKE="./makeparallel"
