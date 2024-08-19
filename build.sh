@@ -11,7 +11,7 @@ fi
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="Underclock"
+KERNELNAME="Codelinaro"
 DEVICENAME="X00TD"
 VARIANT="CLO"
 
