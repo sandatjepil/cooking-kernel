@@ -19,7 +19,7 @@ VARIANT="CLO"
 # "neutron" || "trb" || "ew" || "proton"
 COMP="proton"
 
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".Lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
 TG_SUPER=1
 BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
