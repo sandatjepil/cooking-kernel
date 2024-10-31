@@ -1,6 +1,8 @@
 #!/bin/bash
 export TZ="Asia/Jakarta"
 
+apt-get install bsdtar
+
 if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
 else
