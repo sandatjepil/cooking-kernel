@@ -126,16 +126,16 @@ echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out 2>&1 | tee error.log
 
 if [ "$COMP" = "proton" ]; then
-    make -j$(nproc --all) O=out \
-    CC=clang \
-    CROSS_COMPILE=aarch64-linux-gnu- \
-    CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-    AR=llvm-ar \
-    NM=llvm-nm \
-    OBJCOPY=llvm-objcopy \
-    OBJDUMP=llvm-objdump \
-    CLANG_TRIPLE=aarch64-linux-gnu- \
-    STRIP=llvm-strip 2>&1 | tee error.log
+    make -j$(nproc --all) O=out LLVM=1\
+    CC="$KERNELDIR/clang/bin/clang" \
+    CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+    AR="$KERNELDIR/clang/bin/llvm-ar" \
+    NM="$KERNELDIR/clang/bin/llvm-nm" \
+    OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+    OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+    CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee error.log
 else
     make -j$(nproc --all) O=out LLVM=1\
 	ARCH=arm64 \
