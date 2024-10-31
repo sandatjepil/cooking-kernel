@@ -35,13 +35,13 @@ tg_post_msg(){
             -d message_thread_id="$TG_TOPIC_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
-            -d text="$1" > /dev/null
+            -d text="$1"
         else
             curl -s -X POST "$BOT_MSG_URL" \
             -d chat_id="$TG_CHAT_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
-            -d text="$1" > /dev/null
+            -d text="$1"
         fi
 }
 
@@ -49,14 +49,14 @@ tg_post_build()
 {
 	if [ $TG_SUPER = 1 ]
 	then
-	    curl -F document=@"$1" "$BOT_BUILD_URL" \
+	    curl -s -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$TG_CHAT_ID"  \
 	    -F message_thread_id="$TG_TOPIC_ID" \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2"
 	else
-	    curl -F document=@"$1" "$BOT_BUILD_URL" \
+	    curl -s -F document=@"$1" "$BOT_BUILD_URL" \
 	    -F chat_id="$TG_CHAT_ID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
