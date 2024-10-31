@@ -1,7 +1,7 @@
 #!/bin/bash
 export TZ="Asia/Jakarta"
 
-apt-get install bsdtar
+apt-get install -y libarchive-tools
 
 if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
