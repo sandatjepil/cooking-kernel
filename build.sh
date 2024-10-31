@@ -79,6 +79,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
     curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+    bash antman --patch=glibc
     bash antman -S=09092023
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
