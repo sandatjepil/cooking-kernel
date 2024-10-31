@@ -35,13 +35,13 @@ tg_post_msg(){
             -d message_thread_id="$TG_TOPIC_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
-            -d text="$1"
+            -d text="$1" > /dev/null
         else
             curl -s -X POST "$BOT_MSG_URL" \
             -d chat_id="$TG_CHAT_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
-            -d text="$1"
+            -d text="$1" > /dev/null
         fi
 }
 
@@ -81,8 +81,8 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
     curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-    bash antman --patch=glibc
     bash antman -S=09092023
+    bash antman --patch=glibc
     cd ..
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
