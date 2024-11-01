@@ -17,7 +17,7 @@ VARIANT="CLO"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "proton" || "sdc"
-COMP="sdc"
+COMP="proton"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -82,7 +82,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
     fi
   elif [ $COMP = "proton" ]; then
-    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-15 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
