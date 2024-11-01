@@ -155,12 +155,12 @@ elif [ $COMP = "sdc" ]; then
     export HOSTLD=ld.lld
     ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
     make -j$(nproc --all) O=out LLVM=1 \
-    CROSS_COMPILE=aarch64-linux-android- \
-    CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-    CLANG_TRIPLE=aarch64-linux-gnu- \
-    CC=clang \
-    HOSTCC=gcc \
-    HOSTCXX=g++ ${ClangMoreStrings}
+        CROSS_COMPILE=aarch64-linux-android- \
+        CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
+        CC=clang \
+        HOSTCC=gcc \
+        HOSTCXX=g++ ${ClangMoreStrings}
 else
     make -j$(nproc --all) O=out LLVM=1\
 	CC="$KERNELDIR/clang/bin/clang" \
