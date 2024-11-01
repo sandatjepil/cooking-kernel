@@ -77,7 +77,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "sdc" ]; then
     mkdir -p clang && cd clang
-    curl -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
+    wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
     export PATH="$KERNELDIR/clang/sdclang/bin:$KERNELDIR/clang/gcc64/bin:$KERNELDIR/clang/gcc32/bin:$PATH"
     export LD_LIBRARY_PATH=$KERNELDIR/clang/sdclang/lib:$LD_LIBRARY_PATH
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
