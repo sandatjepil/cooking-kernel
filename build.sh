@@ -140,20 +140,18 @@ else
     make -j$(nproc --all) O=out LLVM=1\
 	ARCH=arm64 \
 	SUBARCH=arm64 \
-	AS="$KERNELDIR/clang/bin/llvm-as" \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
 	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-	LD="$KERNELDIR/clang/bin/ld.lld" \
 	AR="$KERNELDIR/clang/bin/llvm-ar" \
 	NM="$KERNELDIR/clang/bin/llvm-nm" \
 	STRIP="$KERNELDIR/clang/bin/llvm-strip" \
 	OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 	OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 	CLANG_TRIPLE="aarch64-linux-gnu-" \
-	CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+	CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
+    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
+    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
 fi
 
 BUILD_END=$(date +"%s")
