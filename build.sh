@@ -157,6 +157,7 @@ elif [ $COMP = "sdc" ]; then
     make -j$(nproc --all) O=out LLVM=1 \
         CROSS_COMPILE=aarch64-linux-android- \
         CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+        CROSS_COMPILE_COMPAT=arm-linux-androideabi- \
         CLANG_TRIPLE=aarch64-linux-gnu- \
         CC=clang \
         HOSTCC=gcc \
