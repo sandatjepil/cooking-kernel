@@ -134,7 +134,7 @@ if [ "$COMP" = "proton" ]; then
     NM="$KERNELDIR/clang/bin/llvm-nm" \
     OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
     OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-    CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+    CLANG_TRIPLE="aarch64-linux-gnu-" \
     STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee error.log
 else
     make -j$(nproc --all) O=out LLVM=1\
