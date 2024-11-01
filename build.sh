@@ -150,7 +150,7 @@ else
 	STRIP="$KERNELDIR/clang/bin/llvm-strip" \
 	OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 	OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-	CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+	CLANG_TRIPLE="aarch64-linux-gnu-" \
 	CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
     CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
     CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
