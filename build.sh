@@ -17,7 +17,7 @@ VARIANT="CLO"
 
 # set compiler
 # "neutron" || "trb" || "ew" || "proton" || "sdc"
-COMP="proton"
+COMP="neutron"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -91,7 +91,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     apt-get install -y libarchive-tools
     mkdir -p clang && cd clang
     curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-    bash antman -S #=09092023
+    bash antman -S=09092023
     bash antman --patch=glibc
     cd $KERNELDIR
     export PATH="$KERNELDIR/clang/bin:$PATH"
