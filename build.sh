@@ -18,8 +18,8 @@ DEVICENAME="X00TD"
 VARIANT="CLO"
 
 # set compiler
-# "neutron" || "trb" || "ew" || "proton"
-COMP="neutron"
+# "neutron" || "trb" || "ew" || "proton" || "sdc"
+COMP="sdc"
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -74,16 +74,28 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   echo "Clang not found! Cloning..."
   if [ $COMP = "trb" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    export PATH="$KERNELDIR/clang/bin:$PATH"
+  elif [ $COMP = "sdc" ]; then
+    mkdir -p clang && cd clang
+    curl -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
+    export PATH="$KERNELDIR/clang/sdclang/bin:$KERNELDIR/clang/gcc64/bin:$KERNELDIR/clang/gcc32/bin:$PATH"
+    export LD_LIBRARY_PATH=$KERNELDIR/clang/sdclang/lib:$LD_LIBRARY_PATH
+    if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
+      echo "Cloning failed! Aborting..."; exit 1
+    fi
   elif [ $COMP = "proton" ]; then
     git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "ew" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "neutron" ]; then
     mkdir -p clang && cd clang
-    curl "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+    curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
     bash antman -S=09092023
     bash antman --patch=glibc
-    cd ..
+    cd $KERNELDIR
+    export PATH="$KERNELDIR/clang/bin:$PATH"
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
     fi
@@ -98,13 +110,16 @@ DATE=$(date '+%Y%m%d')
 FINAL_KERNEL_ZIP="$KERNELNAME-$DEVICENAME-$(date '+%Y%m%d-%H%M').zip"
 KERVER=$(make kernelversion)
 export KBUILD_BUILD_TIMESTAMP=$(date)
-export PATH="$KERNELDIR/clang/bin:$PATH"
 export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER="Purrr"
 # export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
 export KBUILD_BUILD_HOST="ElectroWizard"
-export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
+if [ $COMP = "sdc" ]; then
+    export KBUILD_COMPILER_STRING="Snapdragon LLVM 14.1.5 × GCC 4.9"
+else
+    export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
+fi
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -136,10 +151,19 @@ if [ "$COMP" = "proton" ]; then
     OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
     CLANG_TRIPLE="aarch64-linux-gnu-" \
     STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee error.log
+elif [ $COMP = "sdc" ]; then
+    export LD=ld.lld
+    export HOSTLD=ld.lld
+    ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
+    make -j$(nproc --all) O=out LLVM=1 \
+    CROSS_COMPILE=aarch64-linux-android- \
+    CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+    CLANG_TRIPLE=aarch64-linux-gnu- \
+    CC=clang \
+    HOSTCC=gcc \
+    HOSTCXX=g++ ${ClangMoreStrings}
 else
     make -j$(nproc --all) O=out LLVM=1\
-	ARCH=arm64 \
-	SUBARCH=arm64 \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
 	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
