@@ -137,7 +137,7 @@ echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
 echo -e "$blue***********************************************"
 echo "          BUILDING KERNEL          "
 echo -e "***********************************************$nocol"
-make $KERNEL_DEFCONFIG O=out 2>&1 | tee error.log
+make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 
 if [ "$COMP" = "proton" ]; then
     make -j$(nproc --all) O=out LLVM=1\
@@ -149,19 +149,19 @@ if [ "$COMP" = "proton" ]; then
     OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
     OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
     CLANG_TRIPLE="aarch64-linux-gnu-" \
-    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee error.log
+    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee -a error.log
 elif [ $COMP = "sdc" ]; then
     export LD=ld.lld
     export HOSTLD=ld.lld
     ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
     make -j$(nproc --all) O=out LLVM=1 \
+        CC=clang \
+        HOSTCXX=clang++ \
+        HOSTCC=clang \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
         CROSS_COMPILE=aarch64-linux-android- \
         CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-        CROSS_COMPILE_COMPAT=aarch64-linux-android- \
-        CLANG_TRIPLE=aarch64-linux-gnu- \
-        CC=clang \
-        HOSTCC=gcc \
-        HOSTCXX=g++ ${ClangMoreStrings} 2>&1 | tee error.log
+        CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
 else
     make -j$(nproc --all) O=out LLVM=1\
 	CC="$KERNELDIR/clang/bin/clang" \
