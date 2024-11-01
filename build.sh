@@ -75,11 +75,10 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "sdc" ]; then
     apt-get install wget -y
-    mkdir -p clang && cd clang
     wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
-    export PATH="$KERNELDIR/clang/sdclang/bin:$KERNELDIR/clang/gcc64/bin:$KERNELDIR/clang/gcc32/bin:$PATH"
-    export LD_LIBRARY_PATH=$KERNELDIR/clang/sdclang/lib:$LD_LIBRARY_PATH
-    if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
+    export PATH="$KERNELDIR/sdclang/bin:$KERNELDIR/gcc64/bin:$KERNELDIR/gcc32/bin:$PATH"
+    export LD_LIBRARY_PATH="$KERNELDIR/sdclang/lib:$LD_LIBRARY_PATH"
+    if ! [ -f "$KERNELDIR/sdclang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
     fi
   elif [ $COMP = "proton" ]; then
