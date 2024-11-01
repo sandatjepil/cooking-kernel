@@ -1,8 +1,6 @@
 #!/bin/bash
 export TZ="Asia/Jakarta"
 
-apt-get install -y libarchive-tools
-
 if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
 else
@@ -76,6 +74,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "sdc" ]; then
+    apt-get install wget -y
     mkdir -p clang && cd clang
     wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
     export PATH="$KERNELDIR/clang/sdclang/bin:$KERNELDIR/clang/gcc64/bin:$KERNELDIR/clang/gcc32/bin:$PATH"
@@ -90,6 +89,7 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "neutron" ]; then
+    apt-get install -y libarchive-tools
     mkdir -p clang && cd clang
     curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
     bash antman -S=09092023
