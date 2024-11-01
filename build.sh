@@ -161,7 +161,7 @@ elif [ $COMP = "sdc" ]; then
         CLANG_TRIPLE=aarch64-linux-gnu- \
         CC=clang \
         HOSTCC=gcc \
-        HOSTCXX=g++ ${ClangMoreStrings}
+        HOSTCXX=g++ ${ClangMoreStrings} 2>&1 | tee error.log
 else
     make -j$(nproc --all) O=out LLVM=1\
 	CC="$KERNELDIR/clang/bin/clang" \
