@@ -140,11 +140,12 @@ echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 
 if [ "$COMP" = "proton" ]; then
-    make -j$(nproc --all) O=out LLVM=1\
+    make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1\
     CC="$KERNELDIR/clang/bin/clang" \
     CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
     CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
     AR="$KERNELDIR/clang/bin/llvm-ar" \
+    LD="$KERNELDIR/clang/bin/ld.lld" \
     NM="$KERNELDIR/clang/bin/llvm-nm" \
     OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
     OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
@@ -163,7 +164,8 @@ elif [ $COMP = "sdc" ]; then
         CROSS_COMPILE_ARM32=arm-linux-androideabi- \
         CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
 else
-    make -j$(nproc --all) O=out LLVM=1\
+    make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1\
+    LD="$KERNELDIR/clang/bin/ld.lld" \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
 	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
