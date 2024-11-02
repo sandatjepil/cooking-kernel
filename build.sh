@@ -16,8 +16,12 @@ DEVICENAME="X00TD"
 VARIANT="CLO"
 
 # set compiler
-# "neutron" || "trb" || "ew" || "proton" || "sdc"
-COMP="proton"
+# 1 = Neutron Clang
+# 2 = TheRagingBeast Clang
+# 3 = ElectroWizard Clang
+# 4 = Proton Clang
+# 5 = Snapdragon Clang x GCC
+COMP=1
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -70,10 +74,10 @@ Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 if ! [ -d "$KERNELDIR/clang" ]; then
   echo "Clang not found! Cloning..."
-  if [ $COMP = "trb" ]; then
+  if [ $COMP = "2" ]; then
     git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
-  elif [ $COMP = "sdc" ]; then
+  elif [ $COMP = "5" ]; then
     apt-get install wget libncurses5 -y
     wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz && cd $KERNELDIR
     export PATH="$KERNELDIR/sdclang/bin:$KERNELDIR/gcc64/bin:$KERNELDIR/gcc32/bin:$PATH"
@@ -81,13 +85,13 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     if ! [ -f "$KERNELDIR/sdclang/bin/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
     fi
-  elif [ $COMP = "proton" ]; then
+  elif [ $COMP = "4" ]; then
     git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
-  elif [ $COMP = "ew" ]; then
+  elif [ $COMP = "3" ]; then
     git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
-  elif [ $COMP = "neutron" ]; then
+  elif [ $COMP = "1" ]; then
     apt-get install -y libarchive-tools
     mkdir -p clang && cd clang
     curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
@@ -139,19 +143,19 @@ echo "          BUILDING KERNEL          "
 echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 
-if [ "$COMP" = "proton" ]; then
-    make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1\
+if [ "$COMP" = 4 ]; then
+    make -j$(nproc --all) O=out LLVM=1 \
     CC="$KERNELDIR/clang/bin/clang" \
     CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
     CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+    CLANG_TRIPLE="aarch64-linux-gnu-" \
     AR="$KERNELDIR/clang/bin/llvm-ar" \
     LD="$KERNELDIR/clang/bin/ld.lld" \
     NM="$KERNELDIR/clang/bin/llvm-nm" \
     OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
     OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-    CLANG_TRIPLE="aarch64-linux-gnu-" \
     STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee -a error.log
-elif [ $COMP = "sdc" ]; then
+elif [ $COMP = 5 ]; then
     export LD=ld.lld
     export HOSTLD=ld.lld
     ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
@@ -164,7 +168,7 @@ elif [ $COMP = "sdc" ]; then
         CROSS_COMPILE_ARM32=arm-linux-androideabi- \
         CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
 else
-    make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1\
+    make -j$(nproc --all) O=out LLVM=1 \
     LD="$KERNELDIR/clang/bin/ld.lld" \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
