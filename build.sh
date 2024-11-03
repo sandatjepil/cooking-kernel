@@ -21,7 +21,7 @@ VARIANT="CLO"
 # 3 = ElectroWizard Clang
 # 4 = Proton Clang
 # 5 = Snapdragon Clang x GCC
-COMP=1
+COMP=3
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
