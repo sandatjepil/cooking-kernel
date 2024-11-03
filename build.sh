@@ -232,14 +232,13 @@ AK3_DIR=$KERNELDIR/AnyKernel3
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
-git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' | tee -a changelog
+git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
 
 echo "**** Copying Image.gz-dtb ****"
-cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3_DIR
+cp -af $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3_DIR
 
 echo "**** Time to zip up! ****"
 cd $AK3_DIR
-
 cp -af $KERNELDIR/changelog META-INF/com/google/android/aroma/changelog.txt
 mv anykernel-real.sh anykernel.sh
 sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
@@ -258,27 +257,27 @@ sed -i "s/device.name3=.*/device.name3=Zenfone Max Pro M1 (X00TD)/g" anykernel.s
 sed -i "s/device.name4=.*/device.name4=ASUS_X00TD/g" anykernel.sh
 sed -i "s/device.name5=.*/device.name5=ASUS_X00T/g" anykernel.sh
 sed -i "s/X00TD=.*/X00TD=1/g" anykernel.sh
-cd META-INF/com/google/android
+cd $AK3_DIR/META-INF/com/google/android
 sed -i "s/KNAME/$KERNELNAME/g" aroma-config
 sed -i "s/KVER/$KERVER/g" aroma-config
 sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
 sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
+
 cd $AK3_DIR
-
-zip -r9 "$FINAL_ZIP.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
-
-if ! [ -f "$KERNELNAME-*" ]; then
+zip -r9 "$FINAL_ZIP.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+if ! [ -f $FINAL_ZIP* ]; then
     tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
+    exit 1
 fi
 
 if [ $SIGN = 1 ]; then
-  mv "$KERNELNAME-*" "krenul.zip"
+  mv $FINAL_ZIP* krenul.zip
   curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
-  java -jar zipsigner-3.0.jar "krenul.zip" "krenul-signed.zip"
+  java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip
   FINAL_ZIP="$FINAL_ZIP-signed"
-  mv "krenul-signed.zip" "$FINAL_ZIP.zip"
+  mv krenul-signed.zip $FINAL_ZIP.zip
 fi
 
 echo "**** Uploading your zip now ****"
