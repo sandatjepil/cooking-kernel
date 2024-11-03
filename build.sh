@@ -9,10 +9,14 @@ else
     exit 1
 fi
 
+# Additional command (if you're lazy to commit :v)
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Concentrate+CASS"/g' arch/arm64/configs/X00TD_defconfig
+
 #set -e
 KERNELDIR=$(pwd)
 KERNELNAME="CAF"
 DEVICENAME="X00TD"
+KERVER=$(make kernelversion)
 VARIANT="End Of Life"
 
 # set compiler
@@ -23,7 +27,9 @@ VARIANT="End Of Life"
 # 5 = Snapdragon Clang x GCC
 COMP=1
 
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Concentrate"/g' arch/arm64/configs/X00TD_defconfig
+# You want to sign your build?
+# 1 = yes || 0 = no
+SIGN=1
 
 ############################################################
 # Define is the target telegram is a supergroup or not
@@ -84,8 +90,8 @@ tg_pin_msg()
 ############################################################
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
-Compiling <b>$KERNELNAME</b> for <b>$DEVICENAME</b>.
-Powered by <b>`source /etc/os-release && echo ${NAME}`</b>.
+Compiling <b>$KERNELNAME</b> kernel, version <b>$KERVER</b> for <b>$DEVICENAME</b>.
+Powered by <b>`source /etc/os-release && echo '$NAME $VERSION'`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 
@@ -127,8 +133,7 @@ fi
 ## Copy this script inside the kernel directory
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%Y%m%d')
-FINAL_KERNEL_ZIP="$KERNELNAME-$DEVICENAME-$(date '+%Y%m%d-%H%M').zip"
-KERVER=$(make kernelversion)
+FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%Y%m%d-%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export ARCH=arm64
 export SUBARCH=arm64
@@ -263,12 +268,18 @@ sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 cd ../../../..
 
-zip -r9 "../$FINAL_KERNEL_ZIP" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
+zip -r9 "../'$FINAL_ZIP'.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
 
 cd ..
 
+if [ $SIGN = 1 ]; then
+  curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
+  java -jar zipsigner-3.0.jar "$FINAL_ZIP".zip "$FINAL_ZIP"-signed.zip
+  FINAL_ZIP="$FINAL_ZIP-signed"
+fi
+
 echo "**** Uploading your zip now ****"
-tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
+tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
 • $(($DIFF / 60)) minutes and $(($DIFF % 60)) seconds
 🐧 *Linux Version*
 • ${KERVER}
@@ -277,5 +288,7 @@ tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
 🆕 *Changelogs*
 \`\`\`
 $(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
-\`\`\`"
+\`\`\`
+thanks to @ItsRyuujiX and @KarthikTheDerp for source"
+
 tg_pin_msg

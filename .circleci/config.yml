@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   compile:
     docker:
-      - image: xyzuan/xdocker:latest
+      - image: wizardprjkt/build:kernel
     steps:
       - run:
           shell: /bin/bash
