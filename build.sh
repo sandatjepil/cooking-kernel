@@ -91,7 +91,7 @@ tg_pin_msg()
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Compiling <b>$KERNELNAME</b> kernel, version <b>$KERVER</b> for <b>$DEVICENAME</b>.
-Powered by <b>`source /etc/os-release && echo '$NAME $VERSION'`</b>.
+Powered by <b>`source /etc/os-release && echo "$NAME $VERSION"`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 
