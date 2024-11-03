@@ -228,17 +228,17 @@ if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
   fi
 fi
 
-ANYKERNEL3_DIR=$KERNELDIR/AnyKernel3/
+AK3_DIR=$KERNELDIR/AnyKernel3
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' | tee -a changelog
 
 echo "**** Copying Image.gz-dtb ****"
-cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $ANYKERNEL3_DIR/
+cp $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3_DIR
 
 echo "**** Time to zip up! ****"
-cd $ANYKERNEL3_DIR/
+cd $AK3_DIR
 
 cp -af $KERNELDIR/changelog META-INF/com/google/android/aroma/changelog.txt
 mv anykernel-real.sh anykernel.sh
@@ -265,18 +265,20 @@ sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
 sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
-cd ../../../..
+cd $AK3_DIR
 
-zip -r9 "../'$FINAL_ZIP'.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
+zip -r9 "$FINAL_ZIP.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* "*.zip"
 
-cd ..
+if ! [ -f "$KERNELNAME-*" ]; then
+    tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
+fi
 
 if [ $SIGN = 1 ]; then
-  mv "$FINAL_ZIP".zip krenul.zip
+  mv "$KERNELNAME-*" "krenul.zip"
   curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
   java -jar zipsigner-3.0.jar "krenul.zip" "krenul-signed.zip"
   FINAL_ZIP="$FINAL_ZIP-signed"
-  mv "krenul-signed.zip" "$FINAL_ZIP".zip
+  mv "krenul-signed.zip" "$FINAL_ZIP.zip"
 fi
 
 echo "**** Uploading your zip now ****"
