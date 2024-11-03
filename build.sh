@@ -25,21 +25,24 @@ COMP=3
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
+############################################################
+# Define is the target telegram is a supergroup or not
+# 1 = true || 0 = false
 TG_SUPER=1
-BOT_MSG_URL="https://api.telegram.org/bot$TG_TOKEN/sendMessage"
-BOT_BUILD_URL="https://api.telegram.org/bot$TG_TOKEN/sendDocument"
 
 tg_post_msg(){
         if [ $TG_SUPER = 1 ]
         then
-            curl -s -X POST "$BOT_MSG_URL" \
+            curl -s -X POST \
+            "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -d chat_id="$TG_CHAT_ID" \
             -d message_thread_id="$TG_TOPIC_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
             -d text="$1"
         else
-            curl -s -X POST "$BOT_MSG_URL" \
+            curl -s -X POST \
+            "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -d chat_id="$TG_CHAT_ID" \
             -d "disable_web_page_preview=true" \
             -d "parse_mode=html" \
@@ -51,20 +54,34 @@ tg_post_build()
 {
 	if [ $TG_SUPER = 1 ]
 	then
-	    curl -s -F document=@"$1" "$BOT_BUILD_URL" \
+	    MSGID=$(curl -s -F document=@"$1" \
+	    "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
 	    -F chat_id="$TG_CHAT_ID"  \
 	    -F message_thread_id="$TG_TOPIC_ID" \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2"
+	    -F caption="$2" \
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	else
-	    curl -s -F document=@"$1" "$BOT_BUILD_URL" \
+	    MSGID=$(curl -s -F document=@"$1" \
+	    "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
 	    -F chat_id="$TG_CHAT_ID"  \
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
-	    -F caption="$2"
+	    -F caption="$2" \
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
+
+tg_pin_msg()
+{
+    curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/pinChatMessage" \
+    -F chat_id="$TG_CHAT_ID"  \
+    message_id="$MSGID" \
+    disable_notification="true"
+}
+
+############################################################
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Compiling <b>$KERNELNAME</b> for <b>$DEVICENAME</b>.
@@ -261,3 +278,4 @@ tg_post_build "$FINAL_KERNEL_ZIP" "⏳ *Compile Time*
 \`\`\`
 $(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
 \`\`\`"
+tg_pin_msg
