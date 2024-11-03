@@ -11,9 +11,9 @@ fi
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="CLO"
+KERNELNAME="CAF"
 DEVICENAME="X00TD"
-VARIANT="CLO"
+VARIANT="End Of Life"
 
 # set compiler
 # 1 = Neutron Clang
@@ -23,7 +23,7 @@ VARIANT="CLO"
 # 5 = Snapdragon Clang x GCC
 COMP=1
 
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Concentrate"/g' arch/arm64/configs/X00TD_defconfig
 
 ############################################################
 # Define is the target telegram is a supergroup or not
@@ -33,7 +33,7 @@ TG_SUPER=1
 tg_post_msg(){
         if [ $TG_SUPER = 1 ]
         then
-            curl -s -X POST \
+            curl -s -o /dev/null -X POST \
             "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -d chat_id="$TG_CHAT_ID" \
             -d message_thread_id="$TG_TOPIC_ID" \
@@ -41,7 +41,7 @@ tg_post_msg(){
             -d "parse_mode=html" \
             -d text="$1"
         else
-            curl -s -X POST \
+            curl -s -o /dev/null -X POST \
             "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -d chat_id="$TG_CHAT_ID" \
             -d "disable_web_page_preview=true" \
@@ -61,7 +61,7 @@ tg_post_build()
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2" \
-	    | cut -d '"message_id":' -f 2 | cut -d "," -f 1)
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	else
 	    MSGID=$(curl -s -F document=@"$1" \
 	    "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
@@ -69,16 +69,16 @@ tg_post_build()
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2" \
-	    | cut -d '"message_id":' -f 2 | cut -d "," -f 1)
+	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
 
 tg_pin_msg()
 {
-    curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/pinChatMessage" \
-    -F chat_id="$TG_CHAT_ID"  \
-    message_id="$MSGID" \
-    disable_notification="true"
+    curl -s -o /dev/null -X POST "https://api.telegram.org/bot$TG_TOKEN/pinChatMessage" \
+    -d chat_id="$TG_CHAT_ID"  \
+    -d message_id=$MSGID \
+    -d disable_notification="true"
 }
 
 ############################################################
