@@ -90,8 +90,8 @@ tg_pin_msg()
 ############################################################
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
-Compiling <b>$KERNELNAME</b> kernel, version <b>$KERVER</b> for <b>$DEVICENAME</b>.
-Powered by <b>`source /etc/os-release && echo "$NAME $VERSION"`</b>.
+Compiling <b>$KERNELNAME</b> <b>v$KERVER</b> for <b>$DEVICENAME</b>.
+Powered by <b>`source /etc/os-release && echo "$NAME"`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 
@@ -130,10 +130,9 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   fi
 fi
 
-## Copy this script inside the kernel directory
 KERNEL_DEFCONFIG=X00TD_defconfig
-DATE=$(date '+%Y%m%d')
-FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%Y%m%d-%H%M')"
+DATE=$(date '+%d%m%Y')
+FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%y%m%d%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export ARCH=arm64
 export SUBARCH=arm64
@@ -273,9 +272,11 @@ zip -r9 "../'$FINAL_ZIP'.zip" * -x .git README.md anykernel-real.sh .gitignore z
 cd ..
 
 if [ $SIGN = 1 ]; then
+  mv "$FINAL_ZIP".zip krenul.zip
   curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
-  java -jar zipsigner-3.0.jar "$FINAL_ZIP".zip "$FINAL_ZIP"-signed.zip
+  java -jar zipsigner-3.0.jar "krenul.zip" "krenul-signed.zip"
   FINAL_ZIP="$FINAL_ZIP-signed"
+  mv "krenul-signed.zip" "$FINAL_ZIP".zip
 fi
 
 echo "**** Uploading your zip now ****"
