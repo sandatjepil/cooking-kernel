@@ -10,11 +10,11 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Concentrate+CASS"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=" (End Of Life)"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="CAF"
+KERNELNAME="CAF-Based"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
@@ -132,7 +132,7 @@ fi
 
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%d%m%Y')
-FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%y%m%d%H%M')"
+FINAL_ZIP="$KERVER_$KERNELNAME_$(date '+%y%m%d%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export ARCH=arm64
 export SUBARCH=arm64
@@ -266,11 +266,15 @@ sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 
 cd $AK3_DIR
-zip -r9 "$FINAL_ZIP.zip" * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+zip -r9 $FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+
 if ! [ -f $FINAL_ZIP* ]; then
     tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
     exit 1
 fi
+
+mv $FINAL_ZIP* $KERNELDIR/$FINAL_ZIP.zip
+cd $KERNELDIR
 
 if [ $SIGN = 1 ]; then
   mv $FINAL_ZIP* krenul.zip
@@ -290,7 +294,6 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
 🆕 *Changelogs*
 \`\`\`
 $(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
-\`\`\`
-thanks to @ItsRyuujiX and @KarthikTheDerp for source"
+\`\`\`"
 
 tg_pin_msg
