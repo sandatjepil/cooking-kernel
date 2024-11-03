@@ -21,7 +21,7 @@ VARIANT="CLO"
 # 3 = ElectroWizard Clang
 # 4 = Proton Clang
 # 5 = Snapdragon Clang x GCC
-COMP=3
+COMP=1
 
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=".lnx.4.4.r42-rel"/g' arch/arm64/configs/X00TD_defconfig
 
@@ -61,7 +61,7 @@ tg_post_build()
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2" \
-	    | cut -d ":" -f 4 | cut -d "," -f 1)
+	    | cut -d '"message_id":' -f 2 | cut -d "," -f 1)
 	else
 	    MSGID=$(curl -s -F document=@"$1" \
 	    "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
@@ -69,7 +69,7 @@ tg_post_build()
 	    -F "disable_web_page_preview=true" \
 	    -F "parse_mode=Markdown" \
 	    -F caption="$2" \
-	    | cut -d ":" -f 4 | cut -d "," -f 1)
+	    | cut -d '"message_id":' -f 2 | cut -d "," -f 1)
 	fi
 }
 
