@@ -10,11 +10,11 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION=" (End Of Life)"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-BrainSculptor"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 KERNELDIR=$(pwd)
-KERNELNAME="CAF-Based"
+KERNELNAME="CAF"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
@@ -132,7 +132,7 @@ fi
 
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%d%m%Y')
-FINAL_ZIP="$KERVER_$KERNELNAME_$(date '+%y%m%d%H%M')"
+FINAL_ZIP="$KERVER-$KERNELNAME-$(date '+%y%m%d%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export ARCH=arm64
 export SUBARCH=arm64
@@ -228,17 +228,17 @@ if ! [ -d "$KERNELDIR/AnyKernel3" ]; then
   fi
 fi
 
-AK3_DIR=$KERNELDIR/AnyKernel3
+AK3DIR=$KERNELDIR/AnyKernel3
 
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
 
 echo "**** Copying Image.gz-dtb ****"
-cp -af $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3_DIR
+cp -af $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3DIR
 
 echo "**** Time to zip up! ****"
-cd $AK3_DIR
+cd $AK3DIR
 cp -af $KERNELDIR/changelog META-INF/com/google/android/aroma/changelog.txt
 mv anykernel-real.sh anykernel.sh
 sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
@@ -257,7 +257,7 @@ sed -i "s/device.name3=.*/device.name3=Zenfone Max Pro M1 (X00TD)/g" anykernel.s
 sed -i "s/device.name4=.*/device.name4=ASUS_X00TD/g" anykernel.sh
 sed -i "s/device.name5=.*/device.name5=ASUS_X00T/g" anykernel.sh
 sed -i "s/X00TD=.*/X00TD=1/g" anykernel.sh
-cd $AK3_DIR/META-INF/com/google/android
+cd $AK3DIR/META-INF/com/google/android
 sed -i "s/KNAME/$KERNELNAME/g" aroma-config
 sed -i "s/KVER/$KERVER/g" aroma-config
 sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
@@ -265,7 +265,7 @@ sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 
-cd $AK3_DIR
+cd $AK3DIR
 zip -r9 $FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
 
 if ! [ -f $FINAL_ZIP* ]; then
