@@ -10,9 +10,10 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-BrainSculptor"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-RestlessSpirit"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
+# Set the Variables
 KERNELDIR=$(pwd)
 KERNELNAME="CAF"
 DEVICENAME="X00TD"
@@ -31,11 +32,19 @@ COMP=1
 # 1 = yes || 0 = no
 SIGN=1
 
-############################################################
 # Define is the target telegram is a supergroup or not
 # 1 = true || 0 = false
 TG_SUPER=1
 
+# Additional Variables
+KERNEL_DEFCONFIG=X00TD_defconfig
+DATE=$(date '+%d%m%Y')
+FINAL_ZIP="$KERVER-$KERNELNAME-$(date '+%y%m%d%H%M')"
+export KBUILD_BUILD_TIMESTAMP=$(date)
+export KBUILD_BUILD_USER="Purrr"
+export KBUILD_BUILD_HOST="ElectroWizard"
+
+############################################################
 tg_post_msg(){
         if [ $TG_SUPER = 1 ]
         then
@@ -55,7 +64,6 @@ tg_post_msg(){
             -d text="$1"
         fi
 }
-
 tg_post_build()
 {
 	if [ $TG_SUPER = 1 ]
@@ -78,7 +86,6 @@ tg_post_build()
 	    | cut -d ":" -f 4 | cut -d "," -f 1)
 	fi
 }
-
 tg_pin_msg()
 {
     curl -s -o /dev/null -X POST "https://api.telegram.org/bot$TG_TOKEN/pinChatMessage" \
@@ -86,14 +93,12 @@ tg_pin_msg()
     -d message_id=$MSGID \
     -d disable_notification="true"
 }
-
 ############################################################
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Compiling <b>$KERNELNAME</b> <b>v$KERVER</b> for <b>$DEVICENAME</b>.
 Powered by <b>`source /etc/os-release && echo "$NAME"`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
-
 
 if ! [ -d "$KERNELDIR/clang" ]; then
   echo "Clang not found! Cloning..."
@@ -130,20 +135,9 @@ if ! [ -d "$KERNELDIR/clang" ]; then
   fi
 fi
 
-KERNEL_DEFCONFIG=X00TD_defconfig
-DATE=$(date '+%d%m%Y')
-FINAL_ZIP="$KERVER-$KERNELNAME-$(date '+%y%m%d%H%M')"
-export KBUILD_BUILD_TIMESTAMP=$(date)
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_BUILD_USER="Purrr"
-# export KBUILD_BUILD_HOST=$(source /etc/os-release && echo "${NAME}" | cut -d" " -f1)
-export KBUILD_BUILD_HOST="ElectroWizard"
-if [ $COMP = "sdc" ]; then
-    export KBUILD_COMPILER_STRING="Snapdragon LLVM 14.1.5 × GCC 4.9"
-else
-    export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
-fi
+export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
 
 # Speed up build process
 MAKE="./makeparallel"
