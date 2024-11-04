@@ -26,7 +26,7 @@ VARIANT="End Of Life"
 # 3 = ElectroWizard Clang
 # 4 = Proton Clang
 # 5 = Snapdragon Clang x GCC
-COMP=2
+COMP=1
 
 # You want to sign your build?
 # 1 = yes || 0 = no
