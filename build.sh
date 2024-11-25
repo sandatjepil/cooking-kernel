@@ -10,7 +10,7 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-RestlessSpirit"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-EOL.Revived🔥"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
