@@ -10,7 +10,7 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Revived"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-EoL.Revived"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
@@ -97,8 +97,9 @@ tg_pin_msg()
 ############################################################
 
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
-Compiling <b>$KERNELNAME</b> <b>v$KERVER</b> for <b>$DEVICENAME</b>.
-Powered by <b>`source /etc/os-release && echo "$NAME"`</b>.
+Masterpiece creation starts!
+Version <b>$KERVER</b> for <b>$DEVICENAME</b>.
+Crafted with <b>`source /etc/os-release && echo "$PRETTY_NAME"`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 if ! [ -d "$KERNELDIR/clang" ]; then
@@ -277,23 +278,22 @@ if [ $SIGN = 1 ]; then
   mv $FINAL_ZIP* krenul.zip
   curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
   java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip
-  FINAL_ZIP="$FINAL_ZIP-signed"
+  FINAL_ZIP="$FINAL_ZIP-sign"
   mv krenul-signed.zip $FINAL_ZIP.zip
 fi
 
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
-• $(($DIFF / 60)) min(s) & $(($DIFF % 60)) secs
+ $(($DIFF / 60)) min(s) and $(($DIFF % 60)) seconds
 📱 *Device*
-• ${DEVICENAME}
+ ${DEVICENAME}
 🐧 *Kernel Version*
-• ${KERVER}
+ ${KERVER}
 🛠 *Compiler*
-• ${KBUILD_COMPILER_STRING}
+ ${KBUILD_COMPILER_STRING}
 🆕 *Changelogs*
 \`\`\`
-$(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
-\`\`\`
+`git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}'`\`\`\`
 ${BONUS_MSG}"
 
 tg_pin_msg
