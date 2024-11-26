@@ -10,15 +10,16 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Revived🔥"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Revived"/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
 KERNELDIR=$(pwd)
-KERNELNAME="CAF"
+KERNELNAME="X00TD"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
+BONUS_MSG="*Note:* KernelSU v0.9.5 is installed by default, And no option to disable it, sorry about that. 🙄"
 
 # set compiler
 # 1 = Neutron Clang
@@ -137,7 +138,7 @@ fi
 
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | awk '{print $1,"LLVM",$4}')
+export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -227,6 +228,8 @@ AK3DIR=$KERNELDIR/AnyKernel3
 # Generating Changelog
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
+echo "" >> changelog
+echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changelog
 
 echo "**** Copying Image.gz-dtb ****"
 cp -af $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb $AK3DIR
@@ -280,14 +283,17 @@ fi
 
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
-• $(($DIFF / 60)) minutes and $(($DIFF % 60)) seconds
-🐧 *Linux Version*
+• $(($DIFF / 60)) min(s) & $(($DIFF % 60)) secs
+📱 *Device*
+• ${DEVICENAME}
+🐧 *Kernel Version*
 • ${KERVER}
 🛠 *Compiler*
 • ${KBUILD_COMPILER_STRING}
 🆕 *Changelogs*
 \`\`\`
 $(git log --oneline -n5 | cut -d" " -f2- | awk '{print "• " $(A)}')
-\`\`\`"
+\`\`\`
+${BONUS_MSG}"
 
 tg_pin_msg
