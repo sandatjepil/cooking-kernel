@@ -19,7 +19,7 @@ KERNELNAME="X00TD"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
-BONUS_MSG="*Note: *KernelSU Disabled Version, enjoy your legacy rooting method* 🤫"
+BONUS_MSG="*Note:* KernelSU Disabled Version! enjoy your legacy rooting method 🤫"
 
 # set compiler
 # 1 = Neutron Clang
