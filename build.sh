@@ -5,7 +5,6 @@ if [ -f kernel/arch/arm64/configs/X00TD_defconfig ]; then
     cd kernel
 else
     echo "Kernel Cloning Failed! aborting..."
-    tg_post_msg "Clone Failed"
     exit 1
 fi
 
@@ -99,7 +98,7 @@ tg_pin_msg()
 tg_post_msg "<b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Masterpiece creation starts!
 Version <b>$KERVER</b> for <b>$DEVICENAME</b>.
-Crafted with <b>`source /etc/os-release && echo "$PRETTY_NAME"`</b>.
+Crafted with <b>`source /etc/os-release && echo "$NAME"`</b>.
 Log URL <a href='$CIRCLE_BUILD_URL'>Click Here</a>."
 
 if ! [ -d "$KERNELDIR/clang" ]; then
@@ -301,4 +300,4 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
 `git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}'`\`\`\`
 ${BONUS_MSG}"
 
-tg_pin_msg
+# tg_pin_msg
