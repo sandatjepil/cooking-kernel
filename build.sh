@@ -10,6 +10,7 @@ fi
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-EoL.Revived"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
@@ -18,7 +19,7 @@ KERNELNAME="X00TD"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
-BONUS_MSG="*Note:* KernelSU v0.9.5 is installed by default, And no option to disable it, sorry about that. 🙄"
+BONUS_MSG="*Note: *KernelSU Disabled Version, enjoy your legacy rooting method* 🤫"
 
 # set compiler
 # 1 = Neutron Clang
