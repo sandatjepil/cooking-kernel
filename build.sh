@@ -27,7 +27,7 @@ BONUS_MSG="*Note:* KernelSU v0.9.5 is installed by default, And no option to dis
 # 3 = ElectroWizard Clang
 # 4 = Proton Clang
 # 5 = Snapdragon Clang x GCC
-COMP=1
+COMP=3
 
 # You want to sign your build?
 # 1 = yes || 0 = no
@@ -119,8 +119,13 @@ if ! [ -d "$KERNELDIR/clang" ]; then
     git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
     export PATH="$KERNELDIR/clang/bin:$PATH"
   elif [ $COMP = "3" ]; then
-    git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    # git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || (echo "Cloning failed! Aborting..."; exit 1)
+    mkdir "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+    wget -O ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && ar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
     export PATH="$KERNELDIR/clang/bin:$PATH"
+    if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
+      echo "Cloning failed! Aborting..."; exit 1
+    fi
   elif [ $COMP = "1" ]; then
     apt-get install -y libarchive-tools
     mkdir -p clang && cd clang
