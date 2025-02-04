@@ -9,8 +9,8 @@ else
 fi
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-EoL.Revived"/g' arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts"/g' arch/arm64/configs/X00TD_defconfig
+# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
@@ -19,7 +19,8 @@ KERNELNAME="X00TD"
 DEVICENAME="X00TD"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
-BONUS_MSG="*Note:* KernelSU Disabled Version! enjoy your legacy rooting method 🤫"
+BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
+https://github.com/rifsxd/KernelSU-Next"
 
 # set compiler
 # 1 = Neutron Clang
@@ -27,7 +28,7 @@ BONUS_MSG="*Note:* KernelSU Disabled Version! enjoy your legacy rooting method �
 # 3 = ElectroWizard Clang
 # 4 = Proton Clang
 # 5 = Snapdragon Clang x GCC
-COMP=3
+COMP=1
 
 # You want to sign your build?
 # 1 = yes || 0 = no
@@ -127,11 +128,11 @@ if ! [ -d "$KERNELDIR/clang" ]; then
       echo "Cloning failed! Aborting..."; exit 1
     fi
   elif [ $COMP = "1" ]; then
-    apt-get install -y libarchive-tools
+    # apt-get install -y libarchive-tools
     mkdir -p clang && cd clang
     curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
     bash antman -S=09092023
-    bash antman --patch=glibc
+    # bash antman --patch=glibc
     cd $KERNELDIR
     export PATH="$KERNELDIR/clang/bin:$PATH"
     if ! [ -f "$KERNELDIR/clang/bin/clang" ]; then
