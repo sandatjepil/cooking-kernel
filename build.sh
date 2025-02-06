@@ -62,11 +62,11 @@ fi
 tg_post_build() {
 if [[ $TG_SUPER == 1 ]]; then
 	curl -s "https://api.telegram.org/bot$TG_TOKEN/sendDocument" -F "document=@$1" \
-	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
+	-F "chat_id=$TG_CHAT_ID" -F "disable_web_page_preview=true" \
 	-F "parse_mode=Markdown" -F "caption=$2" -F "message_thread_id=$TG_TOPIC_ID"
 else
 	curl -s "https://api.telegram.org/bot$TG_TOKEN/sendDocument" -F "document=@$1" \
-	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
+	-F "chat_id=$TG_CHAT_ID" -F "disable_web_page_preview=true" \
 	-F "parse_mode=Markdown" -F "caption=$2"
 fi
 }
@@ -273,7 +273,6 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
  ${KBUILD_COMPILER_STRING}
 💾 *MD5 Checksum*
  ${MD5CHECK}
-🆕 *Changelogs*
-\`\`\`
-`git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}``\`\`\`
-${BONUS_MSG}"
+🆕 *Last Changelog*
+\``git log --oneline -n1 | cut -d" " -f2-`\`
+⚠️ ${BONUS_MSG}"
