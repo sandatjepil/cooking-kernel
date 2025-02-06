@@ -262,12 +262,12 @@ MD5CHECK=$(md5sum "$FINAL_ZIP.zip" | cut -d' ' -f1)
 
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
- $(($DIFF / 60)) min(s) and $(($DIFF % 60)) seconds
+ $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds
 📱 *Device*
  ${DEVICENAME}
 🐧 *Kernel Version*
  ${KERVER}
-🔥 *Supported Android Ver"
+🔥 *Supported Android Ver*
  ${ANDROIDVER}
 🛠 *Compiler*
  ${KBUILD_COMPILER_STRING}
@@ -275,5 +275,5 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
  ${MD5CHECK}
 🆕 *Changelogs*
 \`\`\`
-$(git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}')\`\`\`
+`git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}``\`\`\`
 ${BONUS_MSG}"
