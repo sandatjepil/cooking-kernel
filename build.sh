@@ -61,11 +61,11 @@ fi
 }
 tg_post_build() {
 if [[ $TG_SUPER == 1 ]]; then
-	curl -s -F "document=@$1" "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
+	curl -s "https://api.telegram.org/bot$TG_TOKEN/sendDocument" -F "document=@$1" \
 	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
 	-F "parse_mode=Markdown" -F "caption=$2" -F "message_thread_id=$TG_TOPIC_ID"
 else
-	curl -s -F "document=@$1" "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
+	curl -s "https://api.telegram.org/bot$TG_TOKEN/sendDocument" -F "document=@$1" \
 	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
 	-F "parse_mode=Markdown" -F "caption=$2"
 fi
@@ -242,7 +242,7 @@ sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 cd $AK3DIR
 zip -r9 $FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
 
-if ! [[ -f $FINAL_ZIP* ]]; then
+if ! [[ -f $FINAL_ZIP.zip ]]; then
     tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
     exit 1
 fi
