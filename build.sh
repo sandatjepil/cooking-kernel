@@ -49,30 +49,26 @@ export KBUILD_BUILD_HOST="WizardPrjkt™"
 
 ############################################################
 tg_post_msg(){
-	params=(
-		-X POST
-        -d "chat_id=$TG_CHAT_ID"
-        -d "disable_web_page_preview=true"
-        -d "parse_mode=html"
-        -d "text=$1"
-        )
-    if [[ $TG_SUPER == 1 ]]; then
-    	params+="-d message_thread_id=$TG_TOPIC_ID"
-    fi
-	curl -s "${params[@]}" "https://api.telegram.org/bot$TG_TOKEN/sendMessage"
+if [[ $TG_SUPER == 1 ]]; then
+    curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+    -d "message_thread_id=$TG_TOPIC_ID" -d "parse_mode=html" -d "text=$1" \
+    -d "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true"
+else
+	curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+	-d "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
+	-d "parse_mode=html" -d "text=$1"
+fi
 }
 tg_post_build() {
-	params=(
-		-F "document=@$1"
-		-F "chat_id=$TG_CHAT_ID"
-		-F "disable_web_page_preview=true"
-		-F "parse_mode=Markdown"
-		-F "caption=$2"
-	)
-	if [[ $TG_SUPER == 1 ]]; then
-		params+="-F message_thread_id=$TG_TOPIC_ID"
-	fi
-	curl -s "${params[@]}" "https://api.telegram.org/bot$TG_TOKEN/sendDocument"
+if [[ $TG_SUPER == 1 ]]; then
+	curl -s -F "document=@$1" "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
+	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
+	-F "parse_mode=Markdown" -F "caption=$2" -F "message_thread_id=$TG_TOPIC_ID"
+else
+	curl -s -F "document=@$1" "https://api.telegram.org/bot$TG_TOKEN/sendDocument" \
+	-F "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true" \
+	-F "parse_mode=Markdown" -F "caption=$2"
+fi
 }
 ############################################################
 
@@ -279,5 +275,5 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
  ${MD5CHECK}
 🆕 *Changelogs*
 \`\`\`
-`git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}'`\`\`\`
+$(git log --oneline -n3 | cut -d" " -f2- | awk '{print "• " $(A)}')\`\`\`
 ${BONUS_MSG}"
