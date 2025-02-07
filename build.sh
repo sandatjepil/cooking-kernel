@@ -42,7 +42,7 @@ TG_SUPER=1
 # Additional Variables
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%d %m %Y')
-FINAL_ZIP="$KERNELNAME-v$(echo "$KERVER" | cut -d'.' -f1-2)-$(date '+%y%m%d%H%M')"
+FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%y%m%d%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export KBUILD_BUILD_USER="Purrr"
 export KBUILD_BUILD_HOST="WizardPrjkt™"
@@ -263,16 +263,17 @@ MD5CHECK=$(md5sum "$FINAL_ZIP.zip" | cut -d' ' -f1)
 echo "**** Uploading your zip now ****"
 tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
  $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds
-📱 *Device*
- ${DEVICENAME}
-🐧 *Kernel Version*
- ${KERVER}
-🔥 *Supported Android Ver*
- ${ANDROIDVER}
-🛠 *Compiler*
- ${KBUILD_COMPILER_STRING}
-💾 *MD5 Checksum*
- ${MD5CHECK}
-🆕 *Last Changelog*
-\``git log --oneline -n1 | cut -d" " -f2-`\`
+*Device*
+📱 ${DEVICENAME}
+*Kernel Version*
+🐧 ${KERVER}
+*Supported Android Version*
+🔥 ${ANDROIDVER}
+*Compiler*
+🛠 ${KBUILD_COMPILER_STRING}
+*MD5 Checksum*
+💾 ${MD5CHECK}
+*Last Changelog*
+🆕 \``git log --oneline -n1 | cut -d" " -f2-`\`
+
 ⚠️ ${BONUS_MSG}"
