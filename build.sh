@@ -11,7 +11,6 @@ fi
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
-# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' arch/arm64/configs/X00TD_defconfig
 
 #set -e
 # Set the Variables
@@ -20,8 +19,6 @@ DEVICENAME="X00TD"
 ANDROIDVER="9-13"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
-BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
-https://github.com/rifsxd/KernelSU-Next"
 
 # set compiler
 # 1 = Neutron Clang
@@ -42,7 +39,6 @@ TG_SUPER=1
 # Additional Variables
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%d %m %Y')
-FINAL_ZIP="$KERNELNAME-$KERVER-$(date '+%y%m%d%H%M')"
 export KBUILD_BUILD_TIMESTAMP=$(date)
 export KBUILD_BUILD_USER="Purrr"
 export KBUILD_BUILD_HOST="WizardPrjkt™"
@@ -117,8 +113,21 @@ export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_COMPILER_STRING=$($KERNELDIR/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
+
 # Speed up build process
 MAKE="./makeparallel"
+
+start_cooking() {
+FINAL_ZIP="$KERNELNAME-$1-$KERVER-$(date '+%y%m%d%H%M')"
+# Clean Up Output Directory
+if ! [[ -d "$KERNELDIR"/out ]]; then
+	mkdir -p "$KERNELDIR"/out
+	make O=out clean
+else
+	rm -rf " $KERNELDIR"/out
+	mkdir -p "$KERNELDIR"/out
+	make O=out clean
+fi
 
 BUILD_START=$(date +"%s")
 blue='\033[0;34m'
@@ -126,9 +135,6 @@ cyan='\033[0;36m'
 yellow='\033[0;33m'
 red='\033[0;31m'
 nocol='\033[0m'
-
-mkdir -p out
-make O=out clean
 
 echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
 echo -e "$blue***********************************************"
@@ -190,10 +196,18 @@ if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
 fi
 
 # Anykernel3 time!!
-echo "**** Verifying AnyKernel3 Directory ****"
+echo "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
-if ! [[ -d "$AK3DIR" ]]; then
-  echo "AnyKernel3 not found! Cloning..."
+if [[ -d "$AK3DIR" ]]; then
+  rm -rf "$AK3DIR"
+  echo "Cloning AnyKernel3"
+  if ! git clone --depth=1 -b zeus https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
+    tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to Clone Anykernel, Sending image file instead"
+    echo "Cloning failed! Aborting..."
+    exit 1
+  fi
+else
+  echo "Cloning AnyKernel3"
   if ! git clone --depth=1 -b zeus https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
     tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to Clone Anykernel, Sending image file instead"
     echo "Cloning failed! Aborting..."
@@ -240,15 +254,13 @@ sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 
 cd $AK3DIR
-zip -r9 $FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+zip -r9 ../$FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+cd $KERNELDIR
 
 if ! [[ -f $FINAL_ZIP.zip ]]; then
     tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
     exit 1
 fi
-
-mv $FINAL_ZIP* $KERNELDIR/$FINAL_ZIP.zip
-cd $KERNELDIR
 
 if [[ $SIGN == 1 ]]; then
   mv $FINAL_ZIP* krenul.zip
@@ -277,3 +289,15 @@ tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
 🆕 \``git log --oneline -n1 | cut -d" " -f2-`\`
 
 ⚠️ ${BONUS_MSG}"
+}
+
+# Function Trigger Here
+# With KSU
+BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
+https://github.com/rifsxd/KernelSU-Next"
+start_cooking "KSU"
+
+# Without KSU
+sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method (p.s. APatch is now supported!) 🤫"
+start_cooking "NoKSU"
