@@ -292,9 +292,9 @@ ${KBUILD_COMPILER_STRING}
 
 # Function Trigger Here
 # With KSU
-# BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
-# https://github.com/rifsxd/KernelSU-Next"
-# start_cooking "KSU"
+BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
+https://github.com/rifsxd/KernelSU-Next"
+start_cooking "KSU"
 
 # Without KSU
 sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
