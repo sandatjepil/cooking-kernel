@@ -20,7 +20,7 @@ ANDROIDVER="9-13"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
 
-# set compiler
+# Set compiler
 # 1 = Neutron Clang
 # 2 = TheRagingBeast Clang
 # 3 = ElectroWizard Clang
@@ -28,7 +28,12 @@ VARIANT="End Of Life"
 # 5 = Snapdragon Clang x GCC
 COMP=1
 
-# You want to sign your build?
+# Build with KSU?
+# y = yes || n = no
+# b = build both KSU & Non-KSU
+WITHKSU=b
+
+# Sign the build?
 # 1 = yes || 0 = no
 SIGN=1
 
@@ -74,40 +79,44 @@ tg_post_msg "🕒 <b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Masterpiece creation starts! 
 Version <b>$KERVER</b> for <b>$DEVICENAME</b>.
 Crafted with <b>$(source /etc/os-release && echo "$NAME" | cut -d" " -f1)</b>.
-🔍 Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
+Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 
 echo "Cloning Clang"
-if [[ $COMP == "1" ]]; then
-	# apt-get install -y libarchive-tools
-	mkdir -p clang && cd clang
-	curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-	bash antman -S=09092023
-	# bash antman --patch=glibc
-	cd $KERNELDIR
-	export PATH="$KERNELDIR/clang/bin:$PATH"
-	[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-elif [[ $COMP == "2" ]]; then
-	git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || exit 1
-	export PATH="$KERNELDIR/clang/bin:$PATH"
-elif [[ $COMP == "3" ]]; then
-	# git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || exit 1
-	mkdir "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-	wget -O ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
-	export PATH="$KERNELDIR/clang/bin:$PATH"
-	[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-elif [[ $COMP == "4" ]]; then
-	git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || exit 1
-	export PATH="$KERNELDIR/clang/bin:$PATH"
-elif [[ $COMP == "5" ]]; then
-	apt-get install wget libncurses5 -y
-	wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz
-	export PATH="$KERNELDIR/sdclang/bin:$KERNELDIR/gcc64/bin:$KERNELDIR/gcc32/bin:$PATH"
-	export LD_LIBRARY_PATH="$KERNELDIR/sdclang/lib:$LD_LIBRARY_PATH"
-	[[ -f "$KERNELDIR/sdclang/bin/clang" ]] || exit 1
-else
-	echo "Clang unavailable! Aborting..."
-	exit 1
-fi
+case $COMP in
+	1)
+		mkdir -p clang && cd clang
+		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
+		bash antman -S=09092023 && export PATH="$KERNELDIR/clang/bin:$PATH"
+		cd $KERNELDIR
+		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
+		;;
+	2)
+		git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -b 17 --single-branch clang || exit 1
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		;;
+	3)
+		# git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || exit 1
+		mkdir "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+		wget -O ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
+		;;
+	4)
+		git clone https://gitlab.com/LeCmnGend/clang --depth=1 -b clang-13 --single-branch clang || exit 1
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		;;
+	5)
+		apt-get install wget libncurses5 -y
+		wget -O sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz
+		export PATH="$KERNELDIR/sdclang/bin:$KERNELDIR/gcc64/bin:$KERNELDIR/gcc32/bin:$PATH"
+		export LD_LIBRARY_PATH="$KERNELDIR/sdclang/lib:$LD_LIBRARY_PATH"
+		[[ -f "$KERNELDIR/sdclang/bin/clang" ]] || exit 1
+		;;
+	*)
+		echo "Clang unavailable! Aborting..."
+		exit 1
+		;;
+esac
 
 if [[ "$COMP" == "5" ]]; then
 	export KBUILD_COMPILER_STRING="Snapdragon™ clang version 14.1.5"
@@ -167,14 +176,33 @@ MAKE="./makeparallel"
 start_cooking() {
 	FINAL_ZIP="$KERNELNAME-$1-$KERVER-$(date '+%y%m%d%H%M')"
 	
+	case $1 in
+		KSU)
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
+			;;
+		NoKSU)
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method (p.s. APatch is now supported!) 🤫"
+			;;
+		*)
+			tg_post_msg "what do you want me to do? 😳"
+			;;
+	esac
+
+	
 	# Clean Up Output Directory
 	if ! [[ -d "$KERNELDIR"/out ]]; then
 		mkdir -p "$KERNELDIR"/out
-		make O=out clean
 	else
 		rm -rf " $KERNELDIR"/out
 		mkdir -p "$KERNELDIR"/out
-		make O=out clean
 	fi
 	
 	BUILD_START=$(date +"%s")
@@ -190,46 +218,47 @@ start_cooking() {
 	echo -e "***********************************************$nocol"
 	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 
-	if [[ $COMP == 4 ]]; then
-		make -j$(nproc --all) O=out LLVM=1 \
-	    CC="$KERNELDIR/clang/bin/clang" \
-	    CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-	    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-	    CLANG_TRIPLE="aarch64-linux-gnu-" \
-	    AR="$KERNELDIR/clang/bin/llvm-ar" \
-	    LD="$KERNELDIR/clang/bin/ld.lld" \
-	    NM="$KERNELDIR/clang/bin/llvm-nm" \
-	    OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-	    OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-	    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee -a error.log
-	elif [[ $COMP == 5 ]]; then
-	    export LD=ld.lld
-	    export HOSTLD=ld.lld
-	    ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
-	    make -j$(nproc --all) O=out LLVM=1 \
-	        CC=clang \
-	        HOSTCXX=clang++ \
-	        HOSTCC=clang \
-	        CLANG_TRIPLE=aarch64-linux-gnu- \
-	        CROSS_COMPILE=aarch64-linux-android- \
-	        CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-	        CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
-	else
-	    make -j$(nproc --all) O=out LLVM=1 \
-	    LD="$KERNELDIR/clang/bin/ld.lld" \
-		CC="$KERNELDIR/clang/bin/clang" \
-		HOSTCC="$KERNELDIR/clang/bin/clang" \
-		HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-		AR="$KERNELDIR/clang/bin/llvm-ar" \
-		NM="$KERNELDIR/clang/bin/llvm-nm" \
-		STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-		OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-		OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-		CLANG_TRIPLE="aarch64-linux-gnu-" \
-		CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
-	    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
-	    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
-	fi
+	case $COMP in
+		4)
+			make -j$(nproc --all) O=out LLVM=1 \
+		    CC="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+		    CLANG_TRIPLE="aarch64-linux-gnu-" \
+		    AR="$KERNELDIR/clang/bin/llvm-ar" \
+		    LD="$KERNELDIR/clang/bin/ld.lld" \
+		    NM="$KERNELDIR/clang/bin/llvm-nm" \
+		    OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+		    OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+		    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee -a error.log
+		    ;;
+		5)
+		    export LD=ld.lld && export HOSTLD=ld.lld
+		    ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
+		    make -j$(nproc --all) O=out LLVM=1 \
+			CC=clang HOSTCXX=clang++ HOSTCC=clang \
+			CLANG_TRIPLE=aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-android- \
+			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+			CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
+			;;
+		*)
+		    make -j$(nproc --all) O=out LLVM=1 \
+		    LD="$KERNELDIR/clang/bin/ld.lld" \
+			CC="$KERNELDIR/clang/bin/clang" \
+			HOSTCC="$KERNELDIR/clang/bin/clang" \
+			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+			AR="$KERNELDIR/clang/bin/llvm-ar" \
+			NM="$KERNELDIR/clang/bin/llvm-nm" \
+			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+			CLANG_TRIPLE="aarch64-linux-gnu-" \
+			CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
+		    ;;
+	esac
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
@@ -290,20 +319,18 @@ ${KBUILD_COMPILER_STRING}
 	rm -rf *.zip
 }
 
-#### Function Trigger Here
-#### With KSU
-sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫
-https://github.com/rifsxd/KernelSU-Next"
-start_cooking "KSU"
-
-#### Without KSU
-sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method (p.s. APatch is now supported!) 🤫"
-start_cooking "NoKSU"
+case $WITHKSU in
+	y)
+		start_cooking "KSU"
+		;;
+	n)
+		start_cooking "NoKSU"
+		;;
+	b)
+		start_cooking "KSU"
+		start_cooking "NoKSU"
+		;;
+	*)
+		tg_post_msg "what do you want me to do? 😳"
+		;;
+esac
