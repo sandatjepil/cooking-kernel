@@ -148,7 +148,7 @@ fi
 
 cd "$AK3DIR"
 cp -af "$KERNELDIR"/changelog "$AK3DIR"/META-INF/com/google/android/aroma/changelog.txt
-mv anykernel-real.sh anykernel.sh
+mv -f anykernel-real.sh anykernel.sh
 sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
 sed -i "s/kernel.type=.*/kernel.type=Stock/g" anykernel.sh
 sed -i "s/kernel.for=.*/kernel.for=$DEVICENAME/g" anykernel.sh
