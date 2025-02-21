@@ -7,8 +7,8 @@ jobs:
       - run:
           shell: /bin/bash
           command: |
-            git clone --recursive --depth 15 https://github.com/sandatjepil/asus_kernel_sdm636.git -b zeus-pure kernel
-            curl -s -L https://raw.githubusercontent.com/sandatjepil/cooking-kernel/sky/build.sh | bash
+            git clone -qb zeus --recursive --depth 15 https://github.com/sandatjepil/asus_kernel_sdm636.git kernel
+            curl -sL https://raw.githubusercontent.com/sandatjepil/cooking-kernel/sky/build.sh | bash
           no_output_timeout : 1h
 workflows:
   version: 2.1
