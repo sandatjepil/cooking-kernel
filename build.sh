@@ -13,6 +13,8 @@ log(){
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=.*/CONFIG_CC_STACKPROTECTOR_STRONG=n/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_CC_STACKPROTECTOR_NONE=.*/CONFIG_CC_STACKPROTECTOR_NONE=y/g' arch/arm64/configs/X00TD_defconfig
 
 # Set the Variables
 KERNELNAME="Heliasts"
