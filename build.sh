@@ -32,7 +32,7 @@ COMP=1
 # Build with KSU?
 # 1 = true || 2 = false
 # b = build both KSU & Non-KSU
-WITHKSU=b
+WITHKSU=1
 
 # Sign the build?
 # 1 = true || 2 = false
@@ -94,7 +94,7 @@ case $COMP in
 	1)
 		mkdir -p clang && cd clang
 		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-		bash antman -S=09092023 && export PATH="$KERNELDIR/clang/bin:$PATH"
+		bash antman -S=latest && export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -200,6 +200,7 @@ start_cooking() {
 			;;
 		*)
 			tg_post_msg "what do you want me to do? 😳"
+			exit 1
 			;;
 	esac
 
@@ -213,6 +214,21 @@ start_cooking() {
 	log info "***********************************************"
 	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 	case $COMP in
+		1)
+			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
+		    LD="$KERNELDIR/clang/bin/ld.lld" \
+			CC="$KERNELDIR/clang/bin/clang" \
+			HOSTCC="$KERNELDIR/clang/bin/clang" \
+			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+			AR="$KERNELDIR/clang/bin/llvm-ar" \
+			NM="$KERNELDIR/clang/bin/llvm-nm" \
+			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+			CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
+		    ;;
 		4)
 			make -j$(nproc --all) O=out LLVM=1 \
 		    CC="$KERNELDIR/clang/bin/clang" \
