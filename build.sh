@@ -228,7 +228,6 @@ start_cooking() {
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="aarch64-linux-gnu-" \
-		    CROSS_COMPILE_COMPAT="aarch64-linux-gnu-" \
 		    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		4)
