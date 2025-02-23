@@ -13,8 +13,6 @@ log(){
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=.*/CONFIG_CC_STACKPROTECTOR_STRONG=n/g' arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_CC_STACKPROTECTOR_NONE=.*/CONFIG_CC_STACKPROTECTOR_NONE=y/g' arch/arm64/configs/X00TD_defconfig
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -96,7 +94,7 @@ case $COMP in
 	1)
 		mkdir -p clang && cd clang
 		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-		bash antman -S=latest && export PATH="$KERNELDIR/clang/bin:$PATH"
+		bash antman -S=05012024 && export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -227,8 +225,8 @@ start_cooking() {
 			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CROSS_COMPILE="aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a error.log
+			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		4)
 			make -j$(nproc --all) O=out LLVM=1 \
