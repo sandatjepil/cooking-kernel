@@ -32,7 +32,7 @@ COMP=1
 # Build with KSU?
 # 1 = true || 2 = false
 # b = build both KSU & Non-KSU
-WITHKSU=1
+WITHKSU=b
 
 # Sign the build?
 # 1 = true || 2 = false
