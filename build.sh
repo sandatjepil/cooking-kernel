@@ -17,7 +17,8 @@ sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστή�
 # Set the Variables
 KERNELNAME="Heliasts"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
-ANDROIDVER="9-13"
+ANDRVER="9-13"
+ANDRVERTAG="(Pie - Tiramisu)"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
 
@@ -25,8 +26,6 @@ VARIANT="End Of Life"
 # 1 = Neutron Clang
 # 2 = TheRagingBeast Clang
 # 3 = ElectroWizard Clang
-# 4 = Proton Clang
-# 5 = Snapdragon Clang x GCC
 COMP=1
 
 # Build with KSU?
@@ -93,8 +92,11 @@ log info "****Cloning Clang****"
 case $COMP in
 	1)
 		mkdir -p clang && cd clang
-		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-		bash antman -S=latest && export PATH="$KERNELDIR/clang/bin:$PATH"
+		# Download antman and sync clang
+		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest
+		# Create dummy elfedit so GNU binutils are picked from here
+		touch "$KERNELDIR/clang/binaarch64-linux-gnu-elfedit"
+		export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -108,17 +110,6 @@ case $COMP in
 		wget -qO ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-		;;
-	4)
-		git clone https://gitlab.com/LeCmnGend/clang --depth=1 -qb clang-13 --single-branch clang || exit 1
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		;;
-	5)
-		apt-get install wget libncurses5 -y
-		wget -qO sdc.tar.gz https://github.com/sandatjepil/SDClang/releases/download/v14.1.5/sdclangxgcc.tar.gz && tar -xzf sdc.tar.gz && rm -f sdc.tar.gz
-		export PATH="$KERNELDIR/sdclang/bin:$KERNELDIR/gcc64/bin:$KERNELDIR/gcc32/bin:$PATH"
-		export LD_LIBRARY_PATH="$KERNELDIR/sdclang/lib:$LD_LIBRARY_PATH"
-		[[ -f "$KERNELDIR/sdclang/bin/clang" ]] || exit 1
 		;;
 	*)
 		tg_post_msg "Clang unavailable! Aborting..."
@@ -158,7 +149,7 @@ sed -i "s/kernel.version=.*/kernel.version=$KERVER/g" anykernel.sh
 sed -i "s/message.word=.*/message.word=Kernel need some time to settle./g" anykernel.sh
 sed -i "s/build.date=.*/build.date=$DATE/g" anykernel.sh
 sed -i "s/build.type=.*/build.type=$VARIANT/g" anykernel.sh
-sed -i "s/supported.versions=.*/supported.versions=$ANDROIDVER/g" anykernel.sh
+sed -i "s/supported.versions=.*/supported.versions=$ANDRVER/g" anykernel.sh
 sed -i "s/device.name1=.*/device.name1=X00TD/g" anykernel.sh
 sed -i "s/device.name2=.*/device.name2=X00T/g" anykernel.sh
 sed -i "s/device.name3=.*/device.name3=Zenfone Max Pro M1 (X00TD)/g" anykernel.sh
@@ -228,29 +219,6 @@ start_cooking() {
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
-		4)
-			make -j$(nproc --all) O=out LLVM=1 \
-		    CC="$KERNELDIR/clang/bin/clang" \
-		    CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-		    CLANG_TRIPLE="aarch64-linux-gnu-" \
-		    AR="$KERNELDIR/clang/bin/llvm-ar" \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-		    NM="$KERNELDIR/clang/bin/llvm-nm" \
-		    OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-		    OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-		    STRIP="$KERNELDIR/clang/bin/llvm-strip" 2>&1 | tee -a error.log
-		    ;;
-		5)
-		    export LD=ld.lld && export HOSTLD=ld.lld
-		    ClangMoreStrings="AR=llvm-ar NM=llvm-nm AS=llvm-as STRIP=llvm-strip HOST_PREFIX=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf HOSTAR=llvm-ar HOSTAS=llvm-as"
-		    make -j$(nproc --all) O=out LLVM=1 \
-			CC=clang HOSTCXX=clang++ HOSTCC=clang \
-			CLANG_TRIPLE=aarch64-linux-gnu- \
-			CROSS_COMPILE=aarch64-linux-android- \
-			CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-			CROSS_COMPILE_COMPAT=aarch64-linux-gnu- ${ClangMoreStrings} 2>&1 | tee -a error.log
-			;;
 		*)
 		    make -j$(nproc --all) O=out LLVM=1 \
 		    LD="$KERNELDIR/clang/bin/ld.lld" \
@@ -293,32 +261,37 @@ start_cooking() {
 	fi
 
 	if [[ $SIGN == 1 ]]; then
-		mv $FINAL_ZIP* krenul.zip
-		if ! [[ -f zipsigner-3.0.jar ]]; then
-			curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
+		if java -version > /dev/null 2>&1; then
+			mv $FINAL_ZIP* krenul.zip
+			if ! [[ -f zipsigner-3.0.jar ]]; then
+				curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
+			fi
+			java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip 
+			FINAL_ZIP+="-signed"
+			mv krenul-signed.zip $FINAL_ZIP.zip
+		else
+			log error "Java not installed, abort signing zip..."
+			SIGN=0
 		fi
-		java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip
-		FINAL_ZIP+="-signed"
-		mv krenul-signed.zip $FINAL_ZIP.zip
 	fi
 	
 	MD5CHECK=$(md5sum "$FINAL_ZIP.zip" | cut -d' ' -f1)
 
 	log info "**** Uploading your zip now ****"
 	tg_post_build "$FINAL_ZIP.zip" "⏳ *Compile Time*
- $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds
+- $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds
 📱 *Device*
-${DEVICENAME}
+- ${DEVICENAME}
 🐧 *Kernel Version*
-${KERVER}
+- ${KERVER}
 🔥 *Supported Android Version*
-${ANDROIDVER}
+- ${ANDRVER} ${ANDRVERTAG}
 🛠 *Compiler*
-${KBUILD_COMPILER_STRING}
+- ${KBUILD_COMPILER_STRING}
 💾 *MD5 Checksum*
-\`${MD5CHECK}\`
-🆕 *Last Changelog*
-\`\`\``git log --oneline -n1 | cut -d" " -f2-`\`\`\`
+- \`${MD5CHECK}\`
+\`\`\`CHANGELOG
+`git log --oneline -n1 | cut -d" " -f2-`\`\`\`
 
 ⚠️ ${BONUS_MSG}"
 
