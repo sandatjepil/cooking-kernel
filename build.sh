@@ -94,7 +94,7 @@ case $COMP in
 	1)
 		mkdir -p clang && cd clang
 		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman
-		bash antman -S=05012024 && export PATH="$KERNELDIR/clang/bin:$PATH"
+		bash antman -S=latest && export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
