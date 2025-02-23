@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   compile:
     docker:
-      - image: wizardprjkt/build:kernel
+      - image: ghcr.io/neutron-projects/docker-image:arch-neutron
     steps:
       - run:
           shell: /bin/bash

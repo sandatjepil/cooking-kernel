@@ -86,7 +86,7 @@ KBUILD_BUILD_HOST="WizardPrjkt" ARCH=arm64 SUBARCH=arm64
 tg_post_msg "🕒 <b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Masterpiece creation starts! 
 Version <b>$KERVER</b> for <b>$DEVICENAME</b>.
-Crafted with <b>$(source /etc/os-release && echo "$NAME" | cut -d" " -f1)</b>.
+Crafted with <b>$(source /etc/os-release && echo "$NAME")</b>.
 Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 
 log info "****Cloning Clang****"
