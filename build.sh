@@ -95,7 +95,7 @@ case $COMP in
 		# Download antman and sync clang
 		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest
 		# Create dummy elfedit so GNU binutils are picked from here
-		touch "$KERNELDIR/clang/binaarch64-linux-gnu-elfedit"
+		touch "$KERNELDIR/clang/bin/aarch64-linux-gnu-elfedit"
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
