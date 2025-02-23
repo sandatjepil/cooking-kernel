@@ -318,7 +318,7 @@ ${KBUILD_COMPILER_STRING}
 💾 *MD5 Checksum*
 \`${MD5CHECK}\`
 🆕 *Last Changelog*
-`git log --oneline -n1 | cut -d" " -f2-`
+\`\`\``git log --oneline -n1 | cut -d" " -f2-`\`\`\`
 
 ⚠️ ${BONUS_MSG}"
 
