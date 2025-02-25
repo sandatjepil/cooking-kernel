@@ -117,8 +117,8 @@ case $COMP in
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
 	4)
-		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && cd $KERNELDIR
+		# mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv install clang
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -191,7 +191,7 @@ start_cooking() {
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next version 1.0.4 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
+			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
