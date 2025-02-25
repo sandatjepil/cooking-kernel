@@ -117,7 +117,8 @@ case $COMP in
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
 	4)
-		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv RvClang clang
+		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && cd $KERNELDIR
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
