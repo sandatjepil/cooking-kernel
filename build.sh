@@ -1,5 +1,6 @@
 #!/bin/bash
 ############################################################
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
 [[ -f kernel/Makefile ]] || exit 1
 cd kernel; export KERNELDIR=$(pwd) TZ="Asia/Jakarta"
 blue='\033[0;34m'; red='\033[0;31m'; nocol='\033[0m'
@@ -7,6 +8,7 @@ log(){
 	case $1 in
 		info) echo -e "$blue$2$nocol";;
 		warn) echo -e "$red$2$nocol";;
+		*) echo -e "$red$2$nocol";;
 	esac
 }
 ############################################################
@@ -26,12 +28,13 @@ VARIANT="End Of Life"
 # 1 = Neutron Clang
 # 2 = TheRagingBeast Clang
 # 3 = ElectroWizard Clang
-COMP=1
+# 4 = RvClang
+COMP=4
 
 # Build with KSU?
 # 1 = true || 2 = false
 # b = build both KSU & Non-KSU
-WITHKSU=b
+WITHKSU=1
 
 # Sign the build?
 # 1 = true || 2 = false
@@ -95,7 +98,9 @@ case $COMP in
 		# Download antman and sync clang
 		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest
 		# Create dummy elfedit so GNU binutils are picked from here
-		touch "$KERNELDIR/clang/bin/aarch64-linux-gnu-elfedit"
+		if ! [[ -f aarch64-linux-gnu-elfedit ]]; then
+			ln -s -p "aarch64-linux-gnu-ld" "aarch64-linux-gnu-elfedit"
+		fi
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		cd $KERNELDIR
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
@@ -108,6 +113,11 @@ case $COMP in
 		# git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || exit 1
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
 		wget -qO ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
+		;;
+	4)
+		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv RvClang clang
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -219,6 +229,20 @@ start_cooking() {
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
+		4)
+			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
+		    LD="$KERNELDIR/clang/bin/ld.lld" \
+			CC="$KERNELDIR/clang/bin/clang" \
+			HOSTCC="$KERNELDIR/clang/bin/clang" \
+			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+			AR="$KERNELDIR/clang/bin/llvm-ar" \
+			NM="$KERNELDIR/clang/bin/llvm-nm" \
+			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    ;;
 		*)
 		    make -j$(nproc --all) O=out LLVM=1 \
 		    LD="$KERNELDIR/clang/bin/ld.lld" \
@@ -261,7 +285,7 @@ start_cooking() {
 	fi
 
 	if [[ $SIGN == 1 ]]; then
-		if java -version > /dev/null 2>&1; then
+		if which java > /dev/null 2>&1; then
 			mv $FINAL_ZIP* krenul.zip
 			if ! [[ -f zipsigner-3.0.jar ]]; then
 				curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
@@ -270,7 +294,7 @@ start_cooking() {
 			FINAL_ZIP+="-signed"
 			mv krenul-signed.zip $FINAL_ZIP.zip
 		else
-			log error "Java not installed, abort signing zip..."
+			log warn "Java not installed, abort signing zip..."
 			SIGN=0
 		fi
 	fi
