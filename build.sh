@@ -11,15 +11,16 @@ log(){
 	esac
 }
 ############################################################
+CONFIGFILE="$KERNELDIR"/arch/arm64/configs/vendor/X00TD_defconfig
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' "$CONFIGFILE"
 
 # Set the Variables
 KERNELNAME="Heliasts"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
-ANDRVER="9-13"
-ANDRVERTAG="(Pie - Tiramisu)"
+ANDRVER="13-15"
+ANDRVERTAG="(Tiramisu - Vanilla Ice Cream)"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
 
@@ -33,7 +34,7 @@ COMP=4
 # Build with KSU?
 # 1 = true || 0 = false
 # b = build both KSU & Non-KSU
-WITHKSU=1
+WITHKSU=0
 
 # Sign the build?
 # 1 = true || 0 = false
@@ -83,7 +84,7 @@ fi
 ############################################################
 
 # Additional Variables
-KERNEL_DEFCONFIG=X00TD_defconfig
+KERNEL_DEFCONFIG=vendor/X00TD_defconfig
 DATE=$(date '+%d %m %Y') ZIPDATE=$(date '+%y%m%d%H%M')
 export KBUILD_BUILD_TIMESTAMP=$(date) ARCH=arm64 SUBARCH=arm64
 
@@ -185,17 +186,17 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGFILE"
 			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
 			;;
 		NoKSU)
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGFILE"
+			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGFILE"
 			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method (p.s. APatch is now supported!) 🤫"
 			;;
 		*)
