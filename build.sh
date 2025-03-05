@@ -14,7 +14,7 @@ log(){
 CONFIGFILE="$KERNELDIR"/arch/arm64/configs/vendor/X00TD_defconfig
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' "$CONFIGFILE"
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής⚖️"/g' "$CONFIGFILE"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -34,7 +34,7 @@ COMP=4
 # Build with KSU?
 # 1 = true || 0 = false
 # b = build both KSU & Non-KSU
-WITHKSU=0
+WITHKSU=1
 
 # Sign the build?
 # 1 = true || 0 = false
@@ -186,18 +186,18 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGFILE"
 			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGFILE"
 			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGFILE"
-			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
+			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 https://github.com/KernelSU-Next/KernelSU-Next/releases"
 			;;
 		NoKSU)
-			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGFILE"
 			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGFILE"
 			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGFILE"
-			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method (p.s. APatch is now supported!) 🤫"
+			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method! 🤫"
 			;;
 		*)
 			tg_post_msg "what do you want me to do? 😳"
