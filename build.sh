@@ -1,6 +1,5 @@
 #!/bin/bash
 ############################################################
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
 [[ -f kernel/Makefile ]] || exit 1
 cd kernel; export KERNELDIR=$(pwd) TZ="Asia/Jakarta"
 blue='\033[0;34m'; red='\033[0;31m'; nocol='\033[0m'
@@ -32,20 +31,24 @@ VARIANT="End Of Life"
 COMP=4
 
 # Build with KSU?
-# 1 = true || 2 = false
+# 1 = true || 0 = false
 # b = build both KSU & Non-KSU
 WITHKSU=1
 
 # Sign the build?
-# 1 = true || 2 = false
+# 1 = true || 0 = false
 SIGN=1
 
 ############################################################
 # Push to Telegram?
 # 1 = true || 0 = false
 PUSHTG=1
+# TG_CHAT_ID=
+# TG_TOKEN=
+
 # Target telegram is a supergroup?
 TG_SUPER=1
+# TG_TOPIC_ID=
 
 tg_post_msg(){
 if [[ $PUSHTG == 1 ]]; then
@@ -82,8 +85,7 @@ fi
 # Additional Variables
 KERNEL_DEFCONFIG=X00TD_defconfig
 DATE=$(date '+%d %m %Y') ZIPDATE=$(date '+%y%m%d%H%M')
-export KBUILD_BUILD_TIMESTAMP=$(date) KBUILD_BUILD_USER="Purrr" \
-KBUILD_BUILD_HOST="WizardPrjkt" ARCH=arm64 SUBARCH=arm64
+export KBUILD_BUILD_TIMESTAMP=$(date) ARCH=arm64 SUBARCH=arm64
 
 tg_post_msg "🕒 <b>`date '+%d %b %Y, %H:%M %Z'`</b>
 Masterpiece creation starts! 
@@ -118,7 +120,7 @@ case $COMP in
 		;;
 	4)
 		# mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/21-2025%2F02%2F06/RvClang-21-20250206-bolt-pgo-lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv install clang
+		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/20.1.0/RvClang-20.1.0-bolt-pgo-full_lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv RvClang clang
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -128,11 +130,7 @@ case $COMP in
 		;;
 esac
 
-if [[ "$COMP" == "5" ]]; then
-	export KBUILD_COMPILER_STRING="Snapdragon™ clang version 14.1.5"
-else
-	export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
-fi
+export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
 log info "****Generating Changelog****"
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
@@ -325,11 +323,11 @@ start_cooking() {
 }
 
 case $WITHKSU in
+	0)
+		start_cooking "NoKSU"
+		;;
 	1)
 		start_cooking "KSU"
-		;;
-	2)
-		start_cooking "NoKSU"
 		;;
 	b)
 		start_cooking "KSU"
