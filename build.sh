@@ -11,16 +11,17 @@ log(){
 	esac
 }
 ############################################################
-CONFIGFILE="$KERNELDIR"/arch/arm64/configs/vendor/X00TD_defconfig
+KERNEL_DEFCONFIG=vendor/X00TD_defconfig
+CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής⚖️"/g' "$CONFIGFILE"
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής⚖️"/g' "$CONFIGPATHS"
 
 # Set the Variables
 KERNELNAME="Heliasts"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
-ANDRVER="13-15"
-ANDRVERTAG="(Tiramisu - Vanilla Ice Cream)"
+ANDRVER="11-15"
+ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
 
@@ -84,7 +85,6 @@ fi
 ############################################################
 
 # Additional Variables
-KERNEL_DEFCONFIG=vendor/X00TD_defconfig
 DATE=$(date '+%d %m %Y') ZIPDATE=$(date '+%y%m%d%H%M')
 export KBUILD_BUILD_TIMESTAMP=$(date) ARCH=arm64 SUBARCH=arm64
 
@@ -141,7 +141,7 @@ echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changel
 
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
-if ! git clone -qb zeus --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
+if ! git clone -qb four19 --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log warn "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	exit 1
@@ -168,6 +168,8 @@ sed -i "s/device.name5=.*/device.name5=ASUS_X00T/g" anykernel.sh
 sed -i "s/X00TD=.*/X00TD=1/g" anykernel.sh
 
 cd $AK3DIR/META-INF/com/google/android
+mv -f update-binary update-binary-installer
+mv -f aroma-binary update-binary
 sed -i "s/KNAME/$KERNELNAME/g" aroma-config
 sed -i "s/KVER/$KERVER/g" aroma-config
 sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
@@ -186,17 +188,17 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGFILE"
-			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGPATHS"
+			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
+			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
 			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 https://github.com/KernelSU-Next/KernelSU-Next/releases"
 			;;
 		NoKSU)
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGFILE"
-			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGFILE"
-			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGFILE"
+			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGPATHS"
+			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGPATHS"
+			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGPATHS"
 			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method! 🤫"
 			;;
 		*)
