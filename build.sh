@@ -11,7 +11,11 @@ log(){
 	esac
 }
 ############################################################
-KERNEL_DEFCONFIG=vendor/X00TD_defconfig
+case $(git rev-parse --abbrev-ref HEAD) in
+	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
+	tom) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
+	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
+esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
@@ -189,16 +193,16 @@ start_cooking() {
 	case $1 in
 		KSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGPATHS"
-			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
-			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
 			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 https://github.com/KernelSU-Next/KernelSU-Next/releases"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGPATHS"
-			# sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGPATHS"
-			# sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGPATHS"
 			BONUS_MSG="*Note*: KernelSU disabled version, enjoy your legacy rooting method! 🤫"
 			;;
 		*)
