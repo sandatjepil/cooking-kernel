@@ -196,7 +196,8 @@ start_cooking() {
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
-			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 https://github.com/KernelSU-Next/KernelSU-Next/releases"
+			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 
+[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.5/KernelSU_Next_v1.0.5_12430-release.apk)"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGPATHS"
