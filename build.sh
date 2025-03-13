@@ -235,6 +235,7 @@ start_cooking() {
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		4)
 			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
@@ -249,6 +250,7 @@ start_cooking() {
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		*)
 		    make -j$(nproc --all) O=out LLVM=1 \
