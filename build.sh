@@ -34,7 +34,7 @@ VARIANT="End Of Life"
 # 2 = TheRagingBeast Clang
 # 3 = ElectroWizard Clang
 # 4 = RvClang
-COMP=1
+COMP=4
 
 # Build with KSU?
 # 1 = true || 0 = false
