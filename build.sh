@@ -19,7 +19,8 @@ esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής⚖️"/g' "$CONFIGPATHS"
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Nightly"/g' "$CONFIGPATHS"
+git revert -n cb3df8bb710b5725abc327e9b0f7342a950cef62
 
 # Set the Variables
 KERNELNAME="Heliasts"
