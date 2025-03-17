@@ -14,16 +14,16 @@ log(){
 case $(git rev-parse --abbrev-ref HEAD) in
 	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
 	tom) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
+	cip) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
 	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
 esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Nightly"/g' "$CONFIGPATHS"
-git revert -n cb3df8bb710b5725abc327e9b0f7342a950cef62
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Κασσιόπεια-cip"/g' "$CONFIGPATHS"
 
 # Set the Variables
-KERNELNAME="Heliasts"
+KERNELNAME="Heliasts-cip"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
