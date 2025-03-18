@@ -5,9 +5,9 @@ cd kernel; export KERNELDIR=$(pwd) TZ="Asia/Jakarta"
 blue='\033[0;34m'; red='\033[0;31m'; nocol='\033[0m'
 log(){
 	case $1 in
-		info) echo -e "$blue$2$nocol";;
-		warn) echo -e "$red$2$nocol";;
-		*) echo -e "$red$2$nocol";;
+		info) echo -e "\n$blue$2$nocol\n";;
+		error) echo -e "\n$red$2$nocol\n";;
+		*) echo -e "\n$red$2$nocol\n";;
 	esac
 }
 ############################################################
@@ -147,7 +147,7 @@ echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changel
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb four19 --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
-	log warn "Cloning failed! Aborting..."
+	log error "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	exit 1
 fi
@@ -275,8 +275,8 @@ start_cooking() {
 	DIFF=$(($BUILD_END - $BUILD_START))
 	
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
-	    tg_post_build "error.log" "Compile failed!!"
-	    log warn "**** Compile Failed!!! ****"
+	    tg_post_build "error.log" "Compilation failed after $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds"
+	    log error "**** Compile Failed!!! ****"
 	    exit 1
 	fi
 	log info "**** Kernel build completed ****"
@@ -304,7 +304,7 @@ start_cooking() {
 			FINAL_ZIP+="-signed"
 			mv krenul-signed.zip $FINAL_ZIP.zip
 		else
-			log warn "Java not installed, abort signing zip..."
+			log error "Java not installed, abort signing zip..."
 			SIGN=0
 		fi
 	fi
