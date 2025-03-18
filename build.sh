@@ -20,7 +20,7 @@ esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-cip118-Heliasts-Κασσιόπεια⚖️"/g' "$CONFIGPATHS"
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="Heliasts-Κασσιόπεια-cip"/g' "$CONFIGPATHS"
 
 # Set the Variables
 KERNELNAME="Heliasts-cip"
