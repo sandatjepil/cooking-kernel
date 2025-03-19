@@ -104,8 +104,9 @@ case $COMP in
 	1)
 		mkdir -p clang && cd clang
 		# Download antman and sync clang
-		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest
+		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest # 09092023 for clang 18
 		# Create dummy elfedit so GNU binutils are picked from here
+		cd bin
 		if ! [[ -f aarch64-linux-gnu-elfedit ]]; then
 			ln -s -p "aarch64-linux-gnu-ld" "aarch64-linux-gnu-elfedit"
 		fi
@@ -234,9 +235,9 @@ start_cooking() {
 			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+			CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
+			CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
 		    ;;
 		4)
 			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
@@ -250,8 +251,8 @@ start_cooking() {
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+			CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		*)
 		    make -j$(nproc --all) O=out LLVM=1 \
