@@ -35,7 +35,7 @@ VARIANT="End Of Life"
 # 2 = TheRagingBeast Clang
 # 3 = ElectroWizard Clang
 # 4 = RvClang
-COMP=4
+COMP=1
 
 # Build with KSU?
 # 1 = true || 0 = false
@@ -235,7 +235,7 @@ start_cooking() {
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
 		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		4)
@@ -250,7 +250,7 @@ start_cooking() {
 			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
 			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
 			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
 		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		*)
