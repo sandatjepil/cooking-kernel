@@ -225,7 +225,7 @@ start_cooking() {
 	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
 	case $COMP in
 		1)
-			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
+			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
 		    LD="$KERNELDIR/clang/bin/ld.lld" \
 			CC="$KERNELDIR/clang/bin/clang" \
 			HOSTCC="$KERNELDIR/clang/bin/clang" \
