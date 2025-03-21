@@ -21,6 +21,7 @@ CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Κασσιόπεια"/g' "$CONFIGPATHS"
+sed -i 's/CONFIG_SCHED_BORE=.*/CONFIG_SCHED_BORE=n/g' "$CONFIGPATHS"
 
 # Set the Variables
 KERNELNAME="Heliasts-cip"
@@ -157,7 +158,7 @@ cd "$AK3DIR"
 cp -af "$KERNELDIR"/changelog "$AK3DIR"/META-INF/com/google/android/aroma/changelog.txt
 mv -f anykernel-real.sh anykernel.sh
 sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
-sed -i "s/kernel.type=.*/kernel.type=Stock/g" anykernel.sh
+sed -i "s/kernel.type=.*/kernel.type=Stock-OverClock/g" anykernel.sh
 sed -i "s/kernel.for=.*/kernel.for=$DEVICENAME/g" anykernel.sh
 sed -i "s/kernel.compiler=.*/kernel.compiler=$KBUILD_COMPILER_STRING/g" anykernel.sh
 sed -i "s/kernel.made=.*/kernel.made=$KBUILD_BUILD_USER/g" anykernel.sh
