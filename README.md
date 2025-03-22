@@ -7,7 +7,7 @@ A simple scripts to cook a Linux Kernel at **circleci** kitchen.
 
 ## Note
 - You can specify some variables in your kitchen environtment instead of putting it inside the scripts. (e.g. Telegram Chat ID)
-- Kernel source link is inside `./.circleci/config.yml`
+- Kernel source link is inside `variables.sh`
 
 ## Credits
 [Tiktodz/cooking-kernel](https://github.com/Tiktodz/cooking-kernel.git)

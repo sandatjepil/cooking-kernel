@@ -4,12 +4,13 @@ jobs:
     docker:
       - image: sandatjepil/build:kernel
     steps:
+      - checkout
       - run:
+          name: Masterpiece Creation
           shell: /bin/bash
           command: |
-            git clone -qb cip --recursive --depth 15 https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git kernel
-            curl -sL https://raw.githubusercontent.com/sandatjepil/cooking-kernel/miracle/build.sh | bash
-          no_output_timeout : 1h
+            bash build.sh
+          no_output_timeout : 30m
 workflows:
   version: 2.1
   cooking:
