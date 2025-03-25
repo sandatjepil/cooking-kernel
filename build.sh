@@ -63,7 +63,7 @@ start_cooking() {
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
 		4)
-			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
+			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
 		    LD="$KERNELDIR/clang/bin/ld.lld" \
 			CC="$KERNELDIR/clang/bin/clang" \
 			HOSTCC="$KERNELDIR/clang/bin/clang" \
