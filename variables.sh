@@ -12,7 +12,8 @@ KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 # Compiler
 # 1 Neutron, 2 = TheRagingBeast
 # 3 ElectroWizard, 4 RvClang
-COMP=1
+# 5 Google
+COMP=5
 
 # Build with KSU?
 # 0 false, 1 true, b both KSU & Non KSU

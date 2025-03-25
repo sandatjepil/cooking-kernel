@@ -66,6 +66,13 @@ case $COMP in
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
+	5)
+		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+		wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz -O "clang.tar.gz" && tar -xzf clang.tar.gz && rm -f clang.tar.gz
+		cd $KERNELDIR
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
+		;;
 	*)
 		tg_post_msg "Clang unavailable! Aborting..."
 		exit 1

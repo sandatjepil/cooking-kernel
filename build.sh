@@ -77,6 +77,22 @@ start_cooking() {
 			CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
 		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 		    ;;
+		5)
+			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
+		    LD="$KERNELDIR/clang/bin/ld.lld" \
+			CC="$KERNELDIR/clang/bin/clang" \
+			HOSTCC="$KERNELDIR/clang/bin/clang" \
+			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+			AR="$KERNELDIR/clang/bin/llvm-ar" \
+			NM="$KERNELDIR/clang/bin/llvm-nm" \
+			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+			CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+			CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+		    ;;
 		*)
 		    make -j$(nproc --all) O=out LLVM=1 \
 		    LD="$KERNELDIR/clang/bin/ld.lld" \
