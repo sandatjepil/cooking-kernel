@@ -12,8 +12,8 @@ KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 # Compiler
 # 1 Neutron, 2 = TheRagingBeast
 # 3 ElectroWizard, 4 RvClang
-# 5 Google
-COMP=1
+# 5 Google, 6 Kaleidoscope
+COMP=6
 
 # Build with KSU?
 # 0 false, 1 true, b both KSU & Non KSU
@@ -85,14 +85,14 @@ if [[ $PUSHTG == 1 ]]; then
 	-d "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true"
 fi
 }
-
+BUILDDATE=$(date '+%d %b %Y, %H:%M %Z')
+OSNAME=$(source /etc/os-release && echo "$NAME")
 BUILDPROG="Initializing...."
-ISIPESAN="🕒 <b>`date '+%d %b %Y, %H:%M %Z'`</b>
+ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
 For <b>$DEVICENAME</b>.
-Crafted with <b>$(source /etc/os-release && echo "$NAME")</b>.
+Crafted with <b>$OSNAME</b>.
 Full Log <a href='$CIRCLE_BUILD_URL'>click here!</a>.
 
 Progress: "
-
 IDPESAN=$(tg_post_msg "${ISIPESAN}${BUILDPROG}" | cut -d ":" -f 4 | cut -d "," -f 1)

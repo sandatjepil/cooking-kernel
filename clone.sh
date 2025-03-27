@@ -15,11 +15,11 @@ else
 	exit 1
 fi
 
-ISIPESAN="🕒 <b>`date '+%d %b %Y, %H:%M %Z'`</b>
+ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
 For <b>$DEVICENAME</b>.
 Kernel version <b>$KERVER</b>.
-Crafted with <b>$(source /etc/os-release && echo "$NAME")</b>.
+Crafted with <b>$OSNAME</b>.
 Full log <a href='$CIRCLE_BUILD_URL'>click here!</a>
 
 Progress: "
@@ -73,12 +73,30 @@ case $COMP in
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
+	6)
+		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
+		wget -q https://github.com/PurrrsLitterbox/clang-releases/releases/download/20250327-0946-Asia/clang.tar.zst -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
+		cd $KERNELDIR
+		export PATH="$KERNELDIR/clang/bin:$PATH"
+		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
+		;;
 	*)
 		tg_post_msg "Clang unavailable! Aborting..."
 		exit 1
 		;;
 esac
 export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+
+ISIPESAN="🕒 <b>$BUILDDATE</b>
+Masterpiece creation starts! 
+For <b>$DEVICENAME</b>.
+Kernel version <b>$KERVER</b>.
+Using <b>$KBUILD_COMPILER_STRING</b>
+Crafted with <b>$OSNAME</b>.
+Full log <a href='$CIRCLE_BUILD_URL'>click here!</a>
+
+Progress: "
+tg_edit "${ISIPESAN}${BUILDPROG}"
 
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
