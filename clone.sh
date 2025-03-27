@@ -28,8 +28,7 @@ tg_edit "${ISIPESAN}${BUILDPROG}"
 # Specify Defconfig Paths
 case $(git rev-parse --abbrev-ref HEAD) in
 	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
-	tom) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
-	cip) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
+	tom | cip | susfs) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
 	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
 esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"

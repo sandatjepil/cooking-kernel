@@ -1,12 +1,12 @@
 #!/bin/bash
-KERNELNAME="Heliasts-cip"
+KERNELNAME="Heliasts-SusFS-cip"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 VARIANT="End Of Life"
 
 AK3BRANCH=four19
-KERBRANCH=cip
+KERBRANCH=susfs
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 
 # Compiler
