@@ -6,7 +6,7 @@ ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 VARIANT="End Of Life"
 
 AK3BRANCH=four19
-KERBRANCH=susfs
+KERBRANCH=cip
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 
 # Compiler

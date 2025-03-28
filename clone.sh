@@ -33,7 +33,7 @@ case $(git rev-parse --abbrev-ref HEAD) in
 esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
-log info "****Cloning Clang****"
+log info "Cloning Clang"
 case $COMP in
 	1)
 		mkdir -p clang && cd clang
@@ -97,7 +97,7 @@ Full log <a href='$CIRCLE_BUILD_URL'>click here!</a>
 Progress: "
 tg_edit "${ISIPESAN}${BUILDPROG}"
 
-log info "**** AnyKernel3 Time ****"
+log info "AnyKernel3 Time"
 AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb "$AK3BRANCH" --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log error "Cloning failed! Aborting..."
@@ -141,4 +141,4 @@ sed -i "s/KDEVICE/Zenfone Max Pro M1/g" aroma-config
 sed -i "s/KBDATE/$DATE/g" aroma-config
 sed -i "s/KVARIANT/$VARIANT/g" aroma-config
 cd "$KERNELDIR"
-log info "***** AnyKernel3 Done! *****"
+log info "AnyKernel3 Done!"
