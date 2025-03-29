@@ -5,6 +5,7 @@ source clone.sh
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Κασσιόπεια"/g' "$CONFIGPATHS"
+sed -i 's/CONFIG_SCHED_BORE=.*/CONFIG_SCHED_CASS=y/g' "$CONFIGPATHS"
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -22,7 +23,7 @@ start_cooking() {
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
 			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 
-[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.5/KernelSU_Next_v1.0.5_12430-release.apk)"
+[Download KSU-Next Manager]($KSUMGRLINK)"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGPATHS"

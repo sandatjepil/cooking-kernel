@@ -26,11 +26,6 @@ Progress: "
 tg_edit "${ISIPESAN}${BUILDPROG}"
 
 # Specify Defconfig Paths
-case $(git rev-parse --abbrev-ref HEAD) in
-	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
-	tom | cip | susfs) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
-	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
-esac
 CONFIGPATHS="$KERNELDIR"/arch/arm64/configs/"$KERNEL_DEFCONFIG"
 
 log info "Cloning Clang"
@@ -74,7 +69,7 @@ case $COMP in
 		;;
 	6)
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -q https://github.com/PurrrsLitterbox/clang-releases/releases/download/20250327-0946-Asia/clang.tar.zst -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
+		wget -q https://github.com/PurrrsLitterbox/clang-releases/releases/download/20250327-0946-WIB/clang.tar.zst -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
 		cd $KERNELDIR
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
@@ -99,7 +94,7 @@ tg_edit "${ISIPESAN}${BUILDPROG}"
 
 log info "AnyKernel3 Time"
 AK3DIR=$KERNELDIR/AnyKernel3
-if ! git clone -qb "$AK3BRANCH" --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
+if ! git clone -qb "$AK3BRANCH" --depth=1 "$AK3LINK" AnyKernel3; then
 	log error "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	exit 1

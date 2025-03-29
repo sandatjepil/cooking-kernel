@@ -1,13 +1,15 @@
 #!/bin/bash
-KERNELNAME="Heliasts-SusFS-cip"
+KERNELNAME="Heliasts-cip"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 VARIANT="End Of Life"
 
-AK3BRANCH=four19
 KERBRANCH=cip
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
+AK3BRANCH=four19
+AK3LINK="https://github.com/sandatjepil/AnyKernel3"
+KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.5/KernelSU_Next_v1.0.5_12430-release.apk"
 
 # Compiler
 # 1 Neutron, 2 = TheRagingBeast
@@ -31,9 +33,15 @@ PUSHTG=1
 TG_SUPER=1
 # TG_TOPIC_ID=
 
-
-
 # Additional Variables #####################
+
+# Specify Config Files
+case $KERBRANCH in
+	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
+	tom | cip | susfs) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
+	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
+esac
+
 DATE=$(date '+%d %m %Y') ZIPDATE=$(date '+%y%m%d-%H%M')
 export KBUILD_BUILD_TIMESTAMP=$(date) ARCH=arm64 SUBARCH=arm64
 
@@ -85,6 +93,7 @@ if [[ $PUSHTG == 1 ]]; then
 	-d "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true"
 fi
 }
+
 BUILDDATE=$(date '+%d %b %Y, %H:%M %Z')
 OSNAME=$(source /etc/os-release && echo "$NAME")
 BUILDPROG="Initializing...."
