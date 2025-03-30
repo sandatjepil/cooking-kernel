@@ -12,10 +12,9 @@ AK3LINK="https://github.com/sandatjepil/AnyKernel3"
 KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.5/KernelSU_Next_v1.0.5_12430-release.apk"
 
 # Compiler
-# 1 Neutron, 2 = TheRagingBeast
-# 3 ElectroWizard, 4 RvClang
-# 5 Google, 6 Kaleidoscope
-COMP=6
+# 1 Neutron, 2 RvClang
+# 3 Google, 4 Kaleidoscope
+COMP=4
 
 # Build with KSU?
 # 0 false, 1 true, b both KSU & Non KSU
@@ -23,6 +22,9 @@ WITHKSU=1
 
 # Sign the build? make sure you have jdk! (0/1)
 SIGN=1
+
+# Send log after compiling? (0/1)
+DEBUG=1
 
 # Push to Telegram? (0/1)
 PUSHTG=1
@@ -38,8 +40,7 @@ TG_SUPER=1
 # Specify Config Files
 case $KERBRANCH in
 	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
-	tom | cip | susfs) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
-	*) KERNEL_DEFCONFIG=X00TD_defconfig;;
+	*) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
 esac
 
 DATE=$(date '+%d %m %Y') ZIPDATE=$(date '+%y%m%d-%H%M')

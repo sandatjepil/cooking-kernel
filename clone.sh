@@ -7,9 +7,7 @@ git clone -qb "$KERBRANCH" --recursive --depth 15 "$KERLINK" kernel
 # Verify Kernel Directory
 if [[ -d kernel ]]; then
 	log info "Cloning Kernel Source Done!"
-	cd kernel
-	export KERNELDIR=$(pwd)
-	KERVER=$(make kernelversion)
+	cd kernel && export KERNELDIR=$(pwd) KERVER=$(make kernelversion)
 else
 	log error "Cloning Kernel Source Failed! Exiting"
 	exit 1
@@ -44,30 +42,19 @@ case $COMP in
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
 	2)
-		git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -qb 17 --single-branch clang || exit 1
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		;;
-	3)
-		# git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || exit 1
-		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-		;;
-	4)
 		# mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
 		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/20.1.0/RvClang-20.1.0-bolt-pgo-full_lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv RvClang clang
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
-	5)
+	3)
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
 		wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r522817.tar.gz -O "clang.tar.gz" && tar -xzf clang.tar.gz && rm -f clang.tar.gz
 		cd $KERNELDIR
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
-	6)
+	4)
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
 		wget -q https://github.com/PurrrsLitterbox/clang-releases/releases/download/20250327-0946-WIB/clang.tar.zst -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
 		cd $KERNELDIR

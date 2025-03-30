@@ -1,11 +1,11 @@
 #!/bin/bash
+TOTAL_START=$(date +"%s")
 export TZ="Asia/Jakarta"
 source variables.sh
 source clone.sh
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Κασσιόπεια"/g' "$CONFIGPATHS"
-sed -i 's/CONFIG_SCHED_BORE=.*/CONFIG_SCHED_CASS=y/g' "$CONFIGPATHS"
 
 # Speed up build process
 MAKE="./makeparallel"
@@ -46,48 +46,29 @@ start_cooking() {
 	log info "***********************************************"
 	log info "          BUILDING KERNEL          "
 	log info "***********************************************"
-	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
-	case $COMP in
-		1 | 4 | 5 | 6)
-			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-			CC="$KERNELDIR/clang/bin/clang" \
-			HOSTCC="$KERNELDIR/clang/bin/clang" \
-			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-			AR="$KERNELDIR/clang/bin/llvm-ar" \
-			NM="$KERNELDIR/clang/bin/llvm-nm" \
-			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-			CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
-		    2>&1 | tee -a error.log
-		    ;;
-		*)
-		    make -j$(nproc --all) O=out LLVM=1 \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-			CC="$KERNELDIR/clang/bin/clang" \
-			HOSTCC="$KERNELDIR/clang/bin/clang" \
-			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-			AR="$KERNELDIR/clang/bin/llvm-ar" \
-			NM="$KERNELDIR/clang/bin/llvm-nm" \
-			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CLANG_TRIPLE="aarch64-linux-gnu-" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
-		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang"\
-		    2>&1 | tee -a error.log
-		    ;;
-	esac
+	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a build.log
+
+	make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
+    LD="$KERNELDIR/clang/bin/ld.lld" \
+	CC="$KERNELDIR/clang/bin/clang" \
+	HOSTCC="$KERNELDIR/clang/bin/clang" \
+	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+	AR="$KERNELDIR/clang/bin/llvm-ar" \
+	NM="$KERNELDIR/clang/bin/llvm-nm" \
+	STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+	OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+	OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+	CLANG_TRIPLE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+	CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+	CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" \
+    2>&1 | tee -a build.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
 	
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
-	    tg_post_build "error.log" "Compilation failed after $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds"
+	    tg_post_build "build.log" "Compilation failed after $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds"
 	    log error "**** Compile Failed!!! ****"
 	    exit 1
 	fi
@@ -170,3 +151,11 @@ case $WITHKSU in
 		tg_post_msg "what do you want me to do? 😳"
 		;;
 esac
+
+if [[ $DEBUG == 1 ]]; then
+  tg_post_msg build.log "Debug mode: on"
+fi
+
+TOTAL_END=$(date +"%s")
+TOTAL_DIFF=$(($TOTAL_END - $TOTAL_START))
+tg_post_msg "🚀 Total CI Operations: $(($TOTAL_DIFF / 60)) minute(s) $(($TOTAL_DIFF % 60)) seconds
