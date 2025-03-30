@@ -70,6 +70,10 @@ start_cooking() {
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
 	    tg_post_build "build.log" "Compilation failed after $(($DIFF / 60)) minute(s) $(($DIFF % 60)) seconds"
 	    log error "**** Compile Failed!!! ****"
+	    TOTAL_END=$(date +"%s")
+		TOTAL_DIFF=$(($TOTAL_END - $TOTAL_START))
+		tg_post_msg "🚀 Total CI Operations: $(($TOTAL_DIFF / 60)) minute(s) $(($TOTAL_DIFF % 60)) seconds"
+
 	    exit 1
 	fi
 	log info "**** Kernel build completed ****"
@@ -158,4 +162,4 @@ fi
 
 TOTAL_END=$(date +"%s")
 TOTAL_DIFF=$(($TOTAL_END - $TOTAL_START))
-tg_post_msg "🚀 Total CI Operations: $(($TOTAL_DIFF / 60)) minute(s) $(($TOTAL_DIFF % 60)) seconds
+tg_post_msg "🚀 Total CI Operations: $(($TOTAL_DIFF / 60)) minute(s) $(($TOTAL_DIFF % 60)) seconds"
