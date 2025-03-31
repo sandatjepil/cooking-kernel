@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   compile:
     docker:
-      - image: sandatjepil/build:kernel
+      - image: sandatjepil/build:archlinux
     steps:
       - checkout
       - run:

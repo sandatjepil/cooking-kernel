@@ -87,7 +87,7 @@ if ! git clone -qb "$AK3BRANCH" --depth=1 "$AK3LINK" AnyKernel3; then
 	exit 1
 fi
 
-log info "****Generating Changelog****"
+log info "Generating Changelog"
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog
 git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
 echo "" >> changelog

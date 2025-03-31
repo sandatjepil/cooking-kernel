@@ -5,7 +5,7 @@ ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 VARIANT="End Of Life"
 
-KERBRANCH=cip
+KERBRANCH=tom
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 AK3BRANCH=four19
 AK3LINK="https://github.com/sandatjepil/AnyKernel3"
@@ -89,7 +89,7 @@ fi
 
 tg_edit(){
 if [[ $PUSHTG == 1 ]]; then
-	curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/editMessageText" \
+	curl -so /dev/null -X POST "https://api.telegram.org/bot$TG_TOKEN/editMessageText" \
 	-d "message_id=$IDPESAN" -d "parse_mode=html" -d "text=$1" \
 	-d "chat_id=$TG_CHAT_ID" -d "disable_web_page_preview=true"
 fi
