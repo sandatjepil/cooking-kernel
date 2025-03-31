@@ -1,12 +1,11 @@
 #!/bin/bash
 TOTAL_START=$(date +"%s")
-export TZ="Asia/Jakarta"
+# export TZ="Asia/Jakarta"
 source variables.sh
 source clone.sh
 
 # Additional command (if you're lazy to commit :v)
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Κασσιόπεια"/g' "$CONFIGPATHS"
-sed -i 's/CONFIG_LTO_NONE=.*/CONFIG_LTO_CLANG=y/g' "$CONFIGPATHS"
 
 # Speed up build process
 MAKE="./makeparallel"
