@@ -56,7 +56,7 @@ case $COMP in
 		;;
 	4)
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -q https://github.com/PurrrsLitterbox/clang-releases/releases/download/20250327-0946-WIB/clang.tar.zst -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
+		wget -q "$(curl -sL "https://raw.githubusercontent.com/PurrrsLitterbox/clang-releases/refs/heads/main/latestlink.txt")" -O "clang.tar.zst" && tar -xf clang.tar.zst && rm -f clang.tar.zst
 		cd $KERNELDIR
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
