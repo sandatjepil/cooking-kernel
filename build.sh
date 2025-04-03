@@ -19,6 +19,7 @@ start_cooking() {
 	case $1 in
 		KSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_HAVE_KPROBES=.*/CONFIG_HAVE_KPROBES=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
@@ -27,6 +28,7 @@ start_cooking() {
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$CONFIGPATHS"
+			sed -i 's/CONFIG_HAVE_KPROBES=.*/CONFIG_HAVE_KPROBES=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$CONFIGPATHS"
@@ -46,7 +48,10 @@ start_cooking() {
 	log info "***********************************************"
 	log info "          BUILDING KERNEL          "
 	log info "***********************************************"
-	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a build.log
+
+	make CC="$KERNELDIR/clang/bin/clang" \
+    LD="$KERNELDIR/clang/bin/ld.lld" \
+	$KERNEL_DEFCONFIG O=out 2>&1 | tee -a build.log
 
 	make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
     LD="$KERNELDIR/clang/bin/ld.lld" \
@@ -100,9 +105,14 @@ start_cooking() {
 			if ! [[ -f zipsigner-3.0.jar ]]; then
 				curl -sLo zipsigner-3.0.jar https://github.com/Magisk-Modules-Repo/zipsigner/raw/master/bin/zipsigner-3.0-dexed.jar
 			fi
-			java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip 
-			FINAL_ZIP+="-signed"
-			mv krenul-signed.zip $FINAL_ZIP.zip
+			java -jar zipsigner-3.0.jar krenul.zip krenul-signed.zip && FINAL_ZIP+="-signed"
+			if [ -f krenul-signed.zip ]; then
+				mv krenul-signed.zip $FINAL_ZIP.zip
+			else
+				mv krenul.zip $FINAL_ZIP.zip
+				log error "Signing failed, use unsigned build"
+				SIGN=0
+			fi
 		else
 			log error "Java not installed, abort signing zip..."
 			SIGN=0
