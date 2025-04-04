@@ -1,6 +1,5 @@
 #!/bin/bash
 TOTAL_START=$(date +"%s")
-# export TZ="Asia/Jakarta"
 source variables.sh
 source clone.sh
 
@@ -23,7 +22,7 @@ start_cooking() {
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$CONFIGPATHS"
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$CONFIGPATHS"
-			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next! 🤫 
+			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next $KSUVERSION! 🤫 
 [Download KSU-Next Manager]($KSUMGRLINK)"
 			;;
 		NoKSU)
@@ -50,11 +49,12 @@ start_cooking() {
 	log info "***********************************************"
 
 	make CC="$KERNELDIR/clang/bin/clang" \
-    LD="$KERNELDIR/clang/bin/ld.lld" \
-	$KERNEL_DEFCONFIG O=out 2>&1 | tee -a build.log
+	LD="$KERNELDIR/clang/bin/ld.lld" \
+	$KERNEL_DEFCONFIG O=out \
+	2>&1 | tee -a build.log
 
-	make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=1 \
-    LD="$KERNELDIR/clang/bin/ld.lld" \
+	make -j${NPROC} O=out LLVM=1 LLVM_IAS=1 \
+	LD="$KERNELDIR/clang/bin/ld.lld" \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
 	HOSTCXX="$KERNELDIR/clang/bin/clang++" \

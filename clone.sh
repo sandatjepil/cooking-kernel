@@ -15,11 +15,10 @@ fi
 
 ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
-For <b>$DEVICENAME</b>.
-Kernel version <b>$KERVER</b>.
-Crafted with <b>$OSNAME</b>.
-Full log <a href='$CIRCLE_BUILD_URL'>click here!</a>
-
+📱 <b>$DEVICENAME</b>.
+🐧 <b>$KERVER</b>.
+⌨ <b>$OSNAME</b>.
+🖨 <a href='$CIRCLE_BUILD_URL'>Full logs</a>
 Progress: "
 tg_edit "${ISIPESAN}${BUILDPROG}"
 
@@ -70,22 +69,21 @@ export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n
 
 ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
-For <b>$DEVICENAME</b>.
-Kernel version <b>$KERVER</b>.
-Using <b>$KBUILD_COMPILER_STRING</b>
-Crafted with <b>$OSNAME</b>.
-Full log <a href='$CIRCLE_BUILD_URL'>click here!</a>
-
+📱 <b>$DEVICENAME</b>.
+🐧 <b>$KERVER</b>.
+🛠 <b>$KBUILD_COMPILER_STRING</b>
+⌨ <b>$OSNAME</b>.
+🖨 <a href='$CIRCLE_BUILD_URL'>Full logs</a>
 Progress: "
 tg_edit "${ISIPESAN}${BUILDPROG}"
 
 log info "AnyKernel3 Time"
-AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb "$AK3BRANCH" --depth=1 "$AK3LINK" AnyKernel3; then
 	log error "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	exit 1
 fi
+AK3DIR=$KERNELDIR/AnyKernel3
 
 log info "Generating Changelog"
 echo "<b><#selectbg_g>$(date)</#></b>" > changelog

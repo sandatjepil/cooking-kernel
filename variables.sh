@@ -1,5 +1,6 @@
 #!/bin/bash
-KERNELNAME="Heliasts-cip"
+NPROC=4 # CircleCI can't use nproc --all
+KERNELNAME="Heliasts-cip-SuSFS"
 DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
@@ -9,7 +10,8 @@ KERBRANCH=tom
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 AK3BRANCH=four19
 AK3LINK="https://github.com/sandatjepil/AnyKernel3"
-KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.5/KernelSU_Next_v1.0.5_12430-release.apk"
+KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.6/KernelSU_Next_v1.0.6_12490-release.apk"
+KSUVERSION="v1.0.6"
 
 # Compiler
 # 1 Neutron, 2 RvClang
@@ -100,9 +102,8 @@ OSNAME=$(source /etc/os-release && echo "$NAME")
 BUILDPROG="Initializing...."
 ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
-For <b>$DEVICENAME</b>.
-Crafted with <b>$OSNAME</b>.
-Full Log <a href='$CIRCLE_BUILD_URL'>click here!</a>.
-
+📱 ${DEVICENAME}.
+⌨ ${OSNAME}.
+🖨 <a href='$CIRCLE_BUILD_URL'>Full Logs</a>.
 Progress: "
 IDPESAN=$(tg_post_msg "${ISIPESAN}${BUILDPROG}" | cut -d ":" -f 4 | cut -d "," -f 1)
