@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 NPROC=4 # CircleCI can't use nproc --all
 KERNELNAME="Heliasts-cip-SuSFS"
-DEVICENAME="Asus Zenfone Max Pro M1 (X00TD)"
+DEVICENAME="Zenfone Max Pro M1 (X00TD)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
 VARIANT="End Of Life"
@@ -40,7 +41,7 @@ TG_SUPER=1
 # Additional Variables #####################
 
 # Specify Config Files
-case $KERBRANCH in
+case "$KERBRANCH" in
 	master) KERNEL_DEFCONFIG=vendor/X00TD_defconfig;;
 	*) KERNEL_DEFCONFIG=asus/X00TD_defconfig;;
 esac
@@ -102,8 +103,8 @@ OSNAME=$(source /etc/os-release && echo "$NAME")
 BUILDPROG="Initializing...."
 ISIPESAN="🕒 <b>$BUILDDATE</b>
 Masterpiece creation starts! 
-📱 ${DEVICENAME}.
-⌨ ${OSNAME}.
+📱 ${DEVICENAME}
+🚢 ${OSNAME}
 🖨 <a href='$CIRCLE_BUILD_URL'>Full Logs</a>.
 Progress: "
-IDPESAN=$(tg_post_msg "${ISIPESAN}${BUILDPROG}" | cut -d ":" -f 4 | cut -d "," -f 1)
+IDPESAN=$(tg_post_msg "${ISIPESAN}${BUILDPROG}" | grep -oP '"message_id":\d+' | grep -oE '[0-9]+')

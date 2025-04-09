@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 TOTAL_START=$(date +"%s")
 source variables.sh
 source clone.sh
@@ -50,10 +51,10 @@ start_cooking() {
 
 	make CC="$KERNELDIR/clang/bin/clang" \
 	LD="$KERNELDIR/clang/bin/ld.lld" \
-	$KERNEL_DEFCONFIG O=out \
+	"$KERNEL_DEFCONFIG" O=out \
 	2>&1 | tee -a build.log
 
-	make -j${NPROC} O=out LLVM=1 LLVM_IAS=1 \
+	make -j$NPROC O=out LLVM=1 LLVM_IAS=1 \
 	LD="$KERNELDIR/clang/bin/ld.lld" \
 	CC="$KERNELDIR/clang/bin/clang" \
 	HOSTCC="$KERNELDIR/clang/bin/clang" \
@@ -90,9 +91,9 @@ start_cooking() {
 	tg_edit "${ISIPESAN}${BUILDPROG}"
 
 	log info "**** Time to zip up! ****"
-	cd $AK3DIR
+	cd "$AK3DIR"
 	zip -r9 ../$FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
-	cd $KERNELDIR
+	cd "$KERNELDIR"
 	
 	if ! [[ -f $FINAL_ZIP.zip ]]; then
 	    tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
