@@ -25,10 +25,8 @@ VARIANT="End Of Life"
 
 # Set compiler
 # 1 = Neutron Clang
-# 2 = TheRagingBeast Clang
-# 3 = ElectroWizard Clang
-# 4 = RvClang
-COMP=4
+# 2 = Kaleidoscope
+COMP=2
 
 # Build with KSU?
 # 1 = true || 0 = false
@@ -108,19 +106,8 @@ case $COMP in
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
 	2)
-		git clone https://gitlab.com/varunhardgamer/trb_clang --depth=1 -qb 17 --single-branch clang || exit 1
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		;;
-	3)
-		# git clone https://gitlab.com/Tiktodz/electrowizard-clang.git --depth=1 -b 16 --single-branch clang || exit 1
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO ew.tar.gz https://github.com/Tiktodz/electrowizard-clang/releases/download/ElectroWizard-Clang-18.1.8-release/ElectroWizard-Clang-18.1.8.tar.gz && tar -xzf ew.tar.gz && rm -f ew.tar.gz && cd $KERNELDIR
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-		;;
-	4)
-		# mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO rvclang.tar.gz https://github.com/Rv-Project/RvClang/releases/download/20.1.0/RvClang-20.1.0-bolt-pgo-full_lto.tar.gz && tar -xzf rvclang.tar.gz && rm -f rvclang.tar.gz && mv RvClang clang
+		wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst && cd "$KERNELDIR"
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
@@ -140,7 +127,7 @@ echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changel
 
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
-if ! git clone -qb zeus --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
+if ! git clone -qb four4-hmp --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log warn "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	exit 1
@@ -167,6 +154,8 @@ sed -i "s/device.name5=.*/device.name5=ASUS_X00T/g" anykernel.sh
 sed -i "s/X00TD=.*/X00TD=1/g" anykernel.sh
 
 cd $AK3DIR/META-INF/com/google/android
+mv -f update-binary update-binary-installer
+mv -f aroma-binary update-binary
 sed -i "s/KNAME/$KERNELNAME/g" aroma-config
 sed -i "s/KVER/$KERVER/g" aroma-config
 sed -i "s/KAUTHOR/$KBUILD_BUILD_USER/g" aroma-config
@@ -185,11 +174,17 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
+			# Update KSU-Next
+			rm -rf KernelSU \
+			&& git clone --depth 1 -b v1.0.7 "https://github.com/KernelSU-Next/KernelSU-Next" KernelSU
+
+			# Doing some Configurations
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			BONUS_MSG="*Note:* KernelSU switched to KernelSU-Next 🤫 https://github.com/rifsxd/KernelSU-Next/releases"
+			BONUS_MSG="*Note:* KernelSU updated to KernelSU-Next 1.0.7 🤫
+[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.7/KernelSU_Next_v1.0.7_12602-release.apk)"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
@@ -204,6 +199,9 @@ start_cooking() {
 			;;
 	esac
 
+	# Disable Trace Printk
+	sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+
 	# Clean Up Output Directory
 	[[ -d "$KERNELDIR"/out ]] && rm -rf "$KERNELDIR"/out
 	
@@ -212,53 +210,23 @@ start_cooking() {
 	log info "***********************************************"
 	log info "          BUILDING KERNEL          "
 	log info "***********************************************"
-	make $KERNEL_DEFCONFIG O=out 2>&1 | tee -a error.log
-	case $COMP in
-		1)
-			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-			CC="$KERNELDIR/clang/bin/clang" \
-			HOSTCC="$KERNELDIR/clang/bin/clang" \
-			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-			AR="$KERNELDIR/clang/bin/llvm-ar" \
-			NM="$KERNELDIR/clang/bin/llvm-nm" \
-			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
-		    ;;
-		4)
-			make -j$(nproc --all) O=out LLVM=1 LLVM_IAS=0 \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-			CC="$KERNELDIR/clang/bin/clang" \
-			HOSTCC="$KERNELDIR/clang/bin/clang" \
-			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-			AR="$KERNELDIR/clang/bin/llvm-ar" \
-			NM="$KERNELDIR/clang/bin/llvm-nm" \
-			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
-		    ;;
-		*)
-		    make -j$(nproc --all) O=out LLVM=1 \
-		    LD="$KERNELDIR/clang/bin/ld.lld" \
-			CC="$KERNELDIR/clang/bin/clang" \
-			HOSTCC="$KERNELDIR/clang/bin/clang" \
-			HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-			AR="$KERNELDIR/clang/bin/llvm-ar" \
-			NM="$KERNELDIR/clang/bin/llvm-nm" \
-			STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-			OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-			OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-			CLANG_TRIPLE="aarch64-linux-gnu-" \
-			CROSS_COMPILE="$KERNELDIR/clang/bin/clang" \
-		    CROSS_COMPILE_COMPAT="$KERNELDIR/clang/bin/clang" \
-		    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/clang" 2>&1 | tee -a error.log
-		    ;;
-	esac
+	make $KERNEL_DEFCONFIG \
+	CC=clang \
+	LD=ld.lld \
+	O=out 2>&1 | tee -a error.log
+
+	make -j4 O=out LLVM=1 LLVM_IAS=0 \
+    LD="$KERNELDIR/clang/bin/ld.lld" \
+	CC="$KERNELDIR/clang/bin/clang" \
+	HOSTCC="$KERNELDIR/clang/bin/clang" \
+	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
+	AR="$KERNELDIR/clang/bin/llvm-ar" \
+	NM="$KERNELDIR/clang/bin/llvm-nm" \
+	STRIP="$KERNELDIR/clang/bin/llvm-strip" \
+	OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
+	OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
+	CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
+    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
