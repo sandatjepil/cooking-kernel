@@ -8,6 +8,10 @@ git clone -qb "$KERBRANCH" --recursive --depth 15 "$KERLINK" kernel
 if [[ -d kernel ]]; then
 	log info "Cloning Kernel Source Done!"
 	cd kernel && export KERNELDIR=$(pwd) KERVER=$(make kernelversion)
+
+	# KSU Re-Sync
+	rm -rf KernelSU-Next \
+    && git clone -b next-susfs "https://github.com/KernelSU-Next/KernelSU-Next" KernelSU-Next
 else
 	log error "Cloning Kernel Source Failed! Exiting"
 	exit 1

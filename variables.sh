@@ -11,8 +11,8 @@ KERBRANCH=tom
 KERLINK="https://github.com/PurrrsLitterbox/x00td_kernel_4.19.git"
 AK3BRANCH=four19
 AK3LINK="https://github.com/sandatjepil/AnyKernel3"
-KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.6/KernelSU_Next_v1.0.6_12490-release.apk"
-KSUVERSION="v1.0.6"
+KSUMGRLINK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.7/KernelSU_Next_v1.0.7_12602-release.apk"
+KSUVERSION="v1.0.7"
 
 # Compiler
 # 1 Neutron, 2 RvClang
