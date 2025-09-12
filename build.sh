@@ -178,16 +178,24 @@ start_cooking() {
 	case $1 in
 		KSU)
 			# Update KSU-Next
-			rm -rf KernelSU \
-			&& git clone --depth 1 -b v1.0.9 "https://github.com/KernelSU-Next/KernelSU-Next" KernelSU
+			# Fetch tags dari remote
+			git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
+			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			latest_tag=$(git -C "$KERNELDIR/KernelSU" tag --sort=-v:refname | head -n 1)
+
+			if [[ "$current_tag" != "$latest_tag" ]]; then
+			    log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
+			    git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
+			else
+			    log info "KSU-Next Sudah di versi terbaru."
+			fi
 
 			# Doing some Configurations
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			BONUS_MSG="*Note:* KernelSU updated to KernelSU-Next 1.0.9 🤫
-[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.9/KernelSU_Next_v1.0.9_12797-release.apk)"
+			BONUS_MSG="*Note:* KernelSU-Next updated to version $latest_tag 🤫"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
