@@ -13,7 +13,10 @@ log(){
 ############################################################
 
 # Additional command (if you're lazy to commit :v)
+# Set Kernelname
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
+# Disable Trace Printk
+sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -176,15 +179,15 @@ start_cooking() {
 		KSU)
 			# Update KSU-Next
 			rm -rf KernelSU \
-			&& git clone --depth 1 -b v1.0.7 "https://github.com/KernelSU-Next/KernelSU-Next" KernelSU
+			&& git clone --depth 1 -b v1.0.9 "https://github.com/KernelSU-Next/KernelSU-Next" KernelSU
 
 			# Doing some Configurations
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			BONUS_MSG="*Note:* KernelSU updated to KernelSU-Next 1.0.7 🤫
-[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.7/KernelSU_Next_v1.0.7_12602-release.apk)"
+			BONUS_MSG="*Note:* KernelSU updated to KernelSU-Next 1.0.9 🤫
+[Download KSU-Next Manager](https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.9/KernelSU_Next_v1.0.9_12797-release.apk)"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
@@ -199,8 +202,6 @@ start_cooking() {
 			;;
 	esac
 
-	# Disable Trace Printk
-	sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 	# Clean Up Output Directory
 	[[ -d "$KERNELDIR"/out ]] && rm -rf "$KERNELDIR"/out
