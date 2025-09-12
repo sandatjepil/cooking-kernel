@@ -122,12 +122,6 @@ esac
 
 export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
-log info "****Generating Changelog****"
-echo "<b><#selectbg_g>$(date)</#></b>" > changelog
-git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
-echo "" >> changelog
-echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changelog
-
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb four4-hmp --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
@@ -137,7 +131,6 @@ if ! git clone -qb four4-hmp --depth=1 https://github.com/sandatjepil/AnyKernel3
 fi
 
 cd "$AK3DIR"
-cp -af "$KERNELDIR"/changelog "$AK3DIR"/META-INF/com/google/android/aroma/changelog.txt
 mv -f anykernel-real.sh anykernel.sh
 sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
 sed -i "s/kernel.type=.*/kernel.type=Stock/g" anykernel.sh
@@ -177,7 +170,7 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			# Update KSU-Next
+			# Update KSU-Next Otomatis
 			# Fetch tags dari remote
 			git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
 			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
@@ -186,16 +179,24 @@ start_cooking() {
 			if [[ "$current_tag" != "$latest_tag" ]]; then
 			    log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
 			    git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
+			    current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
 			else
 			    log info "KSU-Next Sudah di versi terbaru."
 			fi
 
-			# Doing some Configurations
+			# Konfigurasi defconfig
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			BONUS_MSG="*Note:* KernelSU-Next updated to version $latest_tag 🤫"
+			
+			# Commit perubahan yang ada agar masuk ke changelog
+			git config user.name  "github-actions[bot]"
+			git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+			git add KernelSU && git commit --amend -m "KernelSU-Next: sync to $current_tag"
+			
+			BONUS_MSG="*Note:* KernelSU-Next updated to $current_tag 🤫
+Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Next/releases) to download the manager"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
@@ -210,6 +211,13 @@ start_cooking() {
 			;;
 	esac
 
+	# Changelog otomatis
+	log info "****Generating Changelog****"
+	echo "<b><#selectbg_g>$(date)</#></b>" > changelog
+	git log --oneline -n15 | cut -d " " -f 2- | awk '{print "<*> " $(A) "</*>"}' >> changelog
+	echo "" >> changelog
+	echo "<b><#selectbg_g>Aroma Installer config by: @ItsRyuujiX</#></b>" >> changelog
+	cp -af "$KERNELDIR"/changelog "$AK3DIR"/META-INF/com/google/android/aroma/changelog.txt
 
 	# Clean Up Output Directory
 	[[ -d "$KERNELDIR"/out ]] && rm -rf "$KERNELDIR"/out
@@ -294,9 +302,6 @@ start_cooking() {
 `git log --oneline -n1 | cut -d" " -f2-`\`\`\`
 
 ⚠️ ${BONUS_MSG}"
-
-	# Removing zip files for second compilation
-	rm -rf *.zip
 }
 
 case $WITHKSU in
@@ -307,8 +312,10 @@ case $WITHKSU in
 		start_cooking "KSU"
 		;;
 	b)
-		start_cooking "KSU"
 		start_cooking "NoKSU"
+		# Removing zip files for second compilation
+		rm -rf *.zip
+		start_cooking "KSU"
 		;;
 	*)
 		tg_post_msg "what do you want me to do? 😳"
