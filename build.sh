@@ -110,7 +110,7 @@ case $COMP in
 		;;
 	2)
 		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst && cd "$KERNELDIR"
+		wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-weekly/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst && cd "$KERNELDIR"
 		export PATH="$KERNELDIR/clang/bin:$PATH"
 		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
 		;;
