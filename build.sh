@@ -17,7 +17,6 @@ log(){
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-curl https://github.com/PurrrsLitterbox/x00td_kernel_4.4/commit/6cb4375d5dc2b86e18ef76f51938cc423951be12.patch | git apply
 
 # Set the Variables
 KERNELNAME="Heliasts"
