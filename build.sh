@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ############################################################
 [[ -f kernel/Makefile ]] || exit 1
 cd kernel; export KERNELDIR=$(pwd) TZ="Asia/Jakarta"
@@ -17,7 +17,6 @@ log(){
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_ZRAM_SIZE_OVERRIDE=.*/CONFIG_ZRAM_SIZE_OVERRIDE=4096/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -26,11 +25,6 @@ ANDRVER="9-13"
 ANDRVERTAG="(Pie - Tiramisu)"
 KERVER=$(make kernelversion)
 VARIANT="End Of Life"
-
-# Set compiler
-# 1 = Neutron Clang
-# 2 = Kaleidoscope
-COMP=2
 
 # Build with KSU?
 # 1 = true || 0 = false
@@ -96,32 +90,15 @@ Crafted with <b>$(source /etc/os-release && echo "$NAME")</b>.
 Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 
 log info "****Cloning Clang****"
-case $COMP in
-	1)
-		mkdir -p clang && cd clang
-		# Download antman and sync clang
-		curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman" -o antman && bash antman -S=latest
-		# Create dummy elfedit so GNU binutils are picked from here
-		if ! [[ -f aarch64-linux-gnu-elfedit ]]; then
-			ln -s -p "aarch64-linux-gnu-ld" "aarch64-linux-gnu-elfedit"
-		fi
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		cd $KERNELDIR
-		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-		;;
-	2)
-		mkdir -p "$KERNELDIR/clang" && cd "$KERNELDIR/clang"
-		wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst && cd "$KERNELDIR"
-		export PATH="$KERNELDIR/clang/bin:$PATH"
-		[[ -f "$KERNELDIR/clang/bin/clang" ]] || exit 1
-		;;
-	*)
-		tg_post_msg "Clang unavailable! Aborting..."
-		exit 1
-		;;
-esac
+TC_EXT="$KERNELDIR/toolchain"
+mkdir -p "$TC_EXT" && pushd "$TC_EXT"
+wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
+popd
+export PATH="$TC_EXT/bin:$PATH"
+[[ -f "$TC_EXT/bin/clang" ]] || exit 1
 
-# export KBUILD_COMPILER_STRING=$("$KERNELDIR"/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+# export KBUILD_COMPILER_STRING=$("$TC_EXT/bin/clang" --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
@@ -231,26 +208,26 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 	make $KERNEL_DEFCONFIG \
 	CC=clang \
 	LD=ld.lld \
-	O=out 2>&1 | tee -a error.log
+	O=out 2>&1 | tee -a build.log
 
 	make -j4 O=out LLVM=1 LLVM_IAS=0 \
-    LD="$KERNELDIR/clang/bin/ld.lld" \
-	CC="$KERNELDIR/clang/bin/clang" \
-	HOSTCC="$KERNELDIR/clang/bin/clang" \
-	HOSTCXX="$KERNELDIR/clang/bin/clang++" \
-	AR="$KERNELDIR/clang/bin/llvm-ar" \
-	NM="$KERNELDIR/clang/bin/llvm-nm" \
-	STRIP="$KERNELDIR/clang/bin/llvm-strip" \
-	OBJCOPY="$KERNELDIR/clang/bin/llvm-objcopy" \
-	OBJDUMP="$KERNELDIR/clang/bin/llvm-objdump" \
-	CROSS_COMPILE="$KERNELDIR/clang/bin/aarch64-linux-gnu-" \
-    CROSS_COMPILE_ARM32="$KERNELDIR/clang/bin/arm-linux-gnueabi-" 2>&1 | tee -a error.log
+    LD="ld.lld" \
+	CC="clang" \
+	HOSTCC="clang" \
+	HOSTCXX="clang++" \
+	AR="llvm-ar" \
+	NM="llvm-nm" \
+	STRIP="llvm-strip" \
+	OBJCOPY="llvm-objcopy" \
+	OBJDUMP="llvm-objdump" \
+	CROSS_COMPILE="aarch64-linux-gnu-" \
+    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log | grep -iE "(warning|error)"
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
 	
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
-	    tg_post_build "error.log" "Compile failed!!"
+	    tg_post_build "build.log" "Compile failed!!"
 	    log warn "**** Compile Failed!!! ****"
 	    exit 1
 	fi
