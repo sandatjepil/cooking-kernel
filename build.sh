@@ -17,7 +17,7 @@ log(){
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_KSU_WITH_KPROBES=.*/CONFIG_KSU_MANUAL_HOOK=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_ZRAM=.*/CONFIG_ZRAM=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -149,21 +149,23 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			# # Update KSU-Next Otomatis
-			# # Fetch tags dari remote
-			# git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
-			# current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			# Update KSU-Next Otomatis
+			# Fetch tags dari remote
+			git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
+			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
 			# latest_tag=$(git -C "$KERNELDIR/KernelSU" tag --sort=-v:refname | head -n 1)
+			latest_tag="v1.1.1"
 
-			# if [[ "$current_tag" != "$latest_tag" ]]; then
-			    # log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
-			    # git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
-			    # current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			# else
-			    # log info "KSU-Next Sudah di versi terbaru."
-			# fi
-			rm -rf "$KERNELDIR/KernelSU"
-			curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.1
+			if [[ "$current_tag" != "$latest_tag" ]]; then
+			    log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
+			    git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
+			    current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			else
+			    log info "KSU-Next Sudah di versi terbaru."
+			fi
+
+			# rm -rf "$KERNELDIR/KernelSU"
+			# curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.1
 
 			# Konfigurasi defconfig
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
@@ -208,6 +210,7 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 	log info "***********************************************"
 	log info "          BUILDING KERNEL          "
 	log info "***********************************************"
+
 	make $KERNEL_DEFCONFIG \
 	CC=clang \
 	LD=ld.lld \
@@ -224,7 +227,7 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 	OBJCOPY="llvm-objcopy" \
 	OBJDUMP="llvm-objdump" \
 	CROSS_COMPILE="aarch64-linux-gnu-" \
-    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log | grep -iE "(warning|error)"
+    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
