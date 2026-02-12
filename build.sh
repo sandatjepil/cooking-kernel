@@ -20,7 +20,7 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_ZRAM=.*/CONFIG_ZRAM=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_ZRAM_SIZE_OVERRIDE=.*/CONFIG_ZRAM_SIZE_OVERRIDE=2048/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 git revert -n 1aee30dc4098f50b6d19ea27ae71e97bfb7b970b 118f4dc55f68ab60a787b369ee91dc9c63bab9f8 3c93a9e685f4fd11945469e3bfe66eef2af7e833 5293e98e7632ec5c980b8604a85e008df077fb01 393fde8b7df4a3bc8a29061ee1ccfe6966d64bed 42642b4aedc45d2f42f7c86fb6872b0693e04ee2 0ebd3ac01279421990803392ab5c8763c7826d95
 
@@ -181,7 +181,7 @@ start_cooking() {
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			
 			# Commit perubahan yang ada agar masuk ke changelog
-			git add KernelSU && git commit --amend -m "KernelSU-Next: sync to $current_tag"
+			git add KernelSU && git commit -m "KernelSU-Next: sync to $current_tag"
 			
 			BONUS_MSG="*Note:* KernelSU-Next updated to $current_tag 🤫
 Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Next/releases) to download the manager"
