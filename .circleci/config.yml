@@ -9,7 +9,7 @@ jobs:
           name: Kernel 4.4.x
           shell: /bin/bash
           command: |
-            git clone -qb zeus --recursive --depth 30 https://github.com/PurrrsLitterbox/x00td_kernel_4.4.git kernel
+            git clone -qb zeus --recursive --depth 85 https://github.com/PurrrsLitterbox/x00td_kernel_4.4.git kernel
             bash build.sh
           no_output_timeout : 1h
 workflows:

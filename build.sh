@@ -16,15 +16,29 @@ log(){
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+git reset --hard 28ff3ddb33a4451c1067de2cd77c1cd80e0fa734
+git cherry-pick 853730f7c0498d43269b1eec7979ce260dad29bf a4d97d15cb6ae7f71b1e733177e7dfe1320c9635
+git cherry-pick "233dfdc45c728ec7c9b02e234e752eae4175422d^..19dc4e7e1ec5bcdcceacd6436cabb8c4e7de1a7d"
+git cherry-pick "b968a3785dfb99a36a97d1985a5a803ec08c0be1^..d8ef0834ac7aaf0c0ac71bd83f5c5334ea760a8a"
+git cherry-pick 4acbdf374a97ff19f8d661a8ac8bd657152d07e5
+git cherry-pick "79154484e0d888da7085450e2bc9a5d44ae6192e^..29c11298c8207f0846a528c633a902748c0048a9"
+git cherry-pick "430a8340913f1f1ed0c4a6f156fd046abe7da838^..cb67f062d8fda4fa4199a8bc519a4e6156b9f910"
+git cherry-pick "633cc751a86b9b5a7a0975aa13044b325492b513^..083ed0c977e85bffaee2696fe3762c5400d350be"
+
+rm -rf KernelSU
+
 # Set Kernelname
 sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+# Set ZRAM size to 2GB
 sed -i 's/CONFIG_ZRAM_SIZE_OVERRIDE=.*/CONFIG_ZRAM_SIZE_OVERRIDE=2048/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
-git revert -n 1aee30dc4098f50b6d19ea27ae71e97bfb7b970b 118f4dc55f68ab60a787b369ee91dc9c63bab9f8 3c93a9e685f4fd11945469e3bfe66eef2af7e833 5293e98e7632ec5c980b8604a85e008df077fb01 393fde8b7df4a3bc8a29061ee1ccfe6966d64bed 42642b4aedc45d2f42f7c86fb6872b0693e04ee2 0ebd3ac01279421990803392ab5c8763c7826d95
+git add . && git commit -m "Remove old KSU Residue"
 
-git commit -am "[SQUASH] Use stock frequencies"
+# Revert Overclock Changes
+# git revert -n 1aee30dc4098f50b6d19ea27ae71e97bfb7b970b 118f4dc55f68ab60a787b369ee91dc9c63bab9f8 3c93a9e685f4fd11945469e3bfe66eef2af7e833 5293e98e7632ec5c980b8604a85e008df077fb01 393fde8b7df4a3bc8a29061ee1ccfe6966d64bed 42642b4aedc45d2f42f7c86fb6872b0693e04ee2 0ebd3ac01279421990803392ab5c8763c7826d95
+# git commit --allow-empty -m "[SQUASH] Use stock frequencies"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -156,38 +170,34 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			# Update KSU-Next Otomatis
-			# Fetch tags dari remote
-			git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
-			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			# latest_tag=$(git -C "$KERNELDIR/KernelSU" tag --sort=-v:refname | head -n 1)
-			latest_tag="v1.1.1"
+			# Revert old KSU Changes
+			# git revert -n 5b5670a89aed43726c0d9762f4d2d029c4be1933 bc8e57e9c375943c13ee9ddff948181de2adfc44 6cb4375d5dc2b86e18ef76f51938cc423951be12 cef6d66ee45ca302213224a52bfe004a47961ec0 d06e68f80d50abc9e628b63fd12d59e8d224d8b6 3429f77d789c8131e81536fb94649d76e09803da f188048a96a5da9c34474406cde82a95831ff56d 1416387f9ba1d5b8424caef2ed4edfa5fb185cc6 0a76dc66dbeac814917650bf3623e96cb8c5ba9d 1345152b1939ac8ae19e4973f6abf32c6b16b965 5aaa1eb484991a8ff2b496641a76ea00c16cef16 c0a10c490d18107239e198649a892cbd189b48cf 0f570f37914d483132dfaa413fec2f51ededb36c
+			# git commit --allow-empty -m "Revert Old KSU Things"
 
-			if [[ "$current_tag" != "$latest_tag" ]]; then
-			    log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
-			    git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
-			    current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			else
-			    log info "KSU-Next Sudah di versi terbaru."
-			fi
+			# Apply patch Scope-minimized patch v1.6
+			patch -p1 -N < ../kernelsuhook.patch || exit 1
 
-			# rm -rf "$KERNELDIR/KernelSU"
-			# curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.1
+			# Ambil Update KSU-N terbaru
+			curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+			git cherry-pick 5aaa1eb484991a8ff2b496641a76ea00c16cef16
 
 			# Konfigurasi defconfig
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			echo "CONFIG_KSU=y
+CONFIG_KSU_MANUAL_HOOK=y
+" >> "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			
 			# Commit perubahan yang ada agar masuk ke changelog
-			git add KernelSU && git commit -m "KernelSU-Next: sync to $current_tag"
+			current_tag=$(git -C "$KERNELDIR/KernelSU-Next" describe --tags --abbrev=0)
+			git commit --allow-empty -m "KernelSU-Next: sync to $current_tag"
 			
 			BONUS_MSG="*Note:* KernelSU-Next updated to $current_tag 🤫
 Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Next/releases) to download the manager"
 			;;
 		NoKSU)
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
