@@ -1,0 +1,60 @@
+From b1bac23ed552cf84d020d42ce554cd9e420adf45 Mon Sep 17 00:00:00 2001
+From: Purrr <masamik2222@gmail.com>
+Date: Mon, 4 Nov 2024 14:10:20 +0700
+Subject: [PATCH] lib: zstd: Always compile zstd_common
+
+As its symbols are essential for both ZSTD_COMPRESS and ZSTD_DECOMPRESS.
+
+To address the following errors:
+
+ld.lld: error: undefined symbol: HUF_readStats
+>>> referenced by zstd_opt.c
+>>>               lib/zstd/zstd_compress.o:(HUF_readCTable) in archive built-in.o
+
+ld.lld: error: undefined symbol: ZSTD_isError
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(zstd_is_error) in archive built-in.o
+
+ld.lld: error: undefined symbol: ZSTD_getErrorCode
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(zstd_get_error_code) in archive built-in.o
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(ZSTD_decompressMultiFrame) in archive built-in.o
+
+ld.lld: error: undefined symbol: ZSTD_getErrorName
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(zstd_get_error_name) in archive built-in.o
+
+ld.lld: error: undefined symbol: HUF_readStats_wksp
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(HUF_readDTableX1_wksp) in archive built-in.o
+>>> referenced by zstd_decompress_block.c
+>>>               lib/zstd/zstd_decompress.o:(HUF_readDTableX2_wksp) in archive built-in.o
+
+ld.lld: error: undefined symbol: FSE_readNCount
+>>> referenced by zstd_opt.c
+>>>               lib/zstd/zstd_compress.o:(ZSTD_loadCEntropy) in archive built-in.o
+>>> referenced by zstd_opt.c
+>>>               lib/zstd/zstd_compress.o:(ZSTD_loadCEntropy) in archive built-in.o
+>>> referenced by zstd_opt.c
+>>>               lib/zstd/zstd_compress.o:(ZSTD_loadCEntropy) in archive built-in.o
+>>> referenced 4 more times
+make[1]: *** [/root/project/kernel/Makefile:1079: vmlinux] Error 1
+make: *** [Makefile:152: sub-make] Error 2
+---
+ lib/zstd/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/zstd/Makefile b/lib/zstd/Makefile
+index 464c410b2768..d3678458178f 100644
+--- a/lib/zstd/Makefile
++++ b/lib/zstd/Makefile
+@@ -10,7 +10,7 @@
+ # ################################################################
+ obj-$(CONFIG_ZSTD_COMPRESS) += zstd_compress.o
+ obj-$(CONFIG_ZSTD_DECOMPRESS) += zstd_decompress.o
+-obj-$(CONFIG_ZSTD_COMMON) += zstd_common.o
++obj-y += zstd_common.o
+ 
+ zstd_compress-y := \
+ 		zstd_compress_module.o \

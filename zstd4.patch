@@ -1,0 +1,81 @@
+From d39d678c0bcb1b184d7c22dd8fe405f23d8f1d22 Mon Sep 17 00:00:00 2001
+From: Purrr <masamik2222@gmail.com>
+Date: Mon, 4 Nov 2024 14:05:19 +0700
+Subject: [PATCH] lib: zstd: add missing header
+
+To address these errors:
+
+In file included from ../lib/zstd/compress/zstd_compress_sequences.c:15:
+In file included from ../lib/zstd/compress/zstd_compress_sequences.h:15:
+../lib/zstd/compress/../common/fse.h:57:16: error: unknown type name 'size_t'
+   57 | FSE_PUBLIC_API size_t FSE_compressBound(size_t size);       /* maximum compressed size */
+      |                ^
+../lib/zstd/compress/../common/fse.h:57:41: error: unknown type name 'size_t'
+   57 | FSE_PUBLIC_API size_t FSE_compressBound(size_t size);       /* maximum compressed size */
+      |                                         ^
+../lib/zstd/compress/../common/fse.h:60:40: error: unknown type name 'size_t'
+   60 | FSE_PUBLIC_API unsigned    FSE_isError(size_t code);        /* tells if a return value is an error code */
+      |                                        ^
+../lib/zstd/compress/../common/fse.h:61:45: error: unknown type name 'size_t'
+   61 | FSE_PUBLIC_API const char* FSE_getErrorName(size_t code);   /* provides error code string (useful for debugging) */
+      |                                             ^
+../lib/zstd/compress/../common/fse.h:91:67: error: unknown type name 'size_t'
+   91 | FSE_PUBLIC_API unsigned FSE_optimalTableLog(unsigned maxTableLog, size_t srcSize, unsigned maxSymbolValue);
+      |                                                                   ^
+../lib/zstd/compress/../common/fse.h:104:16: error: unknown type name 'size_t'
+  104 | FSE_PUBLIC_API size_t FSE_normalizeCount(short* normalizedCounter, unsigned tableLog,
+      |                ^
+../lib/zstd/compress/../common/fse.h:105:44: error: unknown type name 'size_t'
+  105 |                     const unsigned* count, size_t srcSize, unsigned maxSymbolValue, unsigned useLowProbCount);
+      |                                            ^
+../lib/zstd/compress/../common/fse.h:110:16: error: unknown type name 'size_t'
+  110 | FSE_PUBLIC_API size_t FSE_NCountWriteBound(unsigned maxSymbolValue, unsigned tableLog);
+      |                ^
+../lib/zstd/compress/../common/fse.h:116:16: error: unknown type name 'size_t'
+  116 | FSE_PUBLIC_API size_t FSE_writeNCount (void* buffer, size_t bufferSize,
+      |                ^
+../lib/zstd/compress/../common/fse.h:116:54: error: unknown type name 'size_t'
+  116 | FSE_PUBLIC_API size_t FSE_writeNCount (void* buffer, size_t bufferSize,
+      |                                                      ^
+../lib/zstd/compress/../common/fse.h:127:16: error: unknown type name 'size_t'
+  127 | FSE_PUBLIC_API size_t FSE_buildCTable(FSE_CTable* ct, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog);
+      |                ^
+../lib/zstd/compress/../common/fse.h:134:16: error: unknown type name 'size_t'
+  134 | FSE_PUBLIC_API size_t FSE_compress_usingCTable (void* dst, size_t dstCapacity, const void* src, size_t srcSize, const FSE_CTable* ct);
+      |                ^
+../lib/zstd/compress/../common/fse.h:134:60: error: unknown type name 'size_t'
+  134 | FSE_PUBLIC_API size_t FSE_compress_usingCTable (void* dst, size_t dstCapacity, const void* src, size_t srcSize, const FSE_CTable* ct);
+      |                                                            ^
+../lib/zstd/compress/../common/fse.h:134:97: error: unknown type name 'size_t'
+  134 | FSE_PUBLIC_API size_t FSE_compress_usingCTable (void* dst, size_t dstCapacity, const void* src, size_t srcSize, const FSE_CTable* ct);
+      |                                                                                                 ^
+../lib/zstd/compress/../common/fse.h:187:16: error: unknown type name 'size_t'
+  187 | FSE_PUBLIC_API size_t FSE_readNCount (short* normalizedCounter,
+      |                ^
+../lib/zstd/compress/../common/fse.h:189:49: error: unknown type name 'size_t'
+  189 |                            const void* rBuffer, size_t rBuffSize);
+      |                                                 ^
+../lib/zstd/compress/../common/fse.h:194:16: error: unknown type name 'size_t'
+  194 | FSE_PUBLIC_API size_t FSE_readNCount_bmi2(short* normalizedCounter,
+      |                ^
+../lib/zstd/compress/../common/fse.h:196:49: error: unknown type name 'size_t'
+  196 |                            const void* rBuffer, size_t rBuffSize, int bmi2);
+      |                                                 ^
+---
+ lib/zstd/common/fse.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/zstd/common/fse.h b/lib/zstd/common/fse.h
+index c4e25a219142..f11693480e71 100644
+--- a/lib/zstd/common/fse.h
++++ b/lib/zstd/common/fse.h
+@@ -21,7 +21,8 @@
+ /*-*****************************************
+ *  Dependencies
+ ******************************************/
+-#include "zstd_deps.h"    /* size_t, ptrdiff_t */
++#include "zstd_deps.h"
++#include <linux/types.h>    /* size_t, ptrdiff_t */
+ 
+ 
+ /*-*****************************************
