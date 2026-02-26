@@ -175,25 +175,26 @@ start_cooking() {
 			# git commit --allow-empty -m "Revert Old KSU Things"
 
 			# Apply patch Scope-minimized patch v1.6
-			patch -p1 -N < ../kernelsuhook.patch || exit 1
+			# patch -p1 -N < ../kernelsuhook.patch || exit 1
 
 			# Ambil Update KSU-N terbaru
-			curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+            curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
 			git cherry-pick 5aaa1eb484991a8ff2b496641a76ea00c16cef16
 
 			# Konfigurasi defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-			echo "CONFIG_KSU=y
-CONFIG_KSU_MANUAL_HOOK=y
+			echo "
+CONFIG_KSU=y
+CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 " >> "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			
 			# Commit perubahan yang ada agar masuk ke changelog
-			current_tag=$(git -C "$KERNELDIR/KernelSU-Next" describe --tags --abbrev=0)
-			git commit --allow-empty -m "KernelSU-Next: sync to $current_tag"
+			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			git commit --allow-empty -m "KernelSU: sync to $current_tag"
 			
-			BONUS_MSG="*Note:* KernelSU-Next updated to $current_tag 🤫
+			BONUS_MSG="*Note:* KernelSU updated to $current_tag 🤫
 Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Next/releases) to download the manager"
 			;;
 		NoKSU)
