@@ -9,7 +9,7 @@ jobs:
           name: Kernel 4.14.x
           shell: /bin/bash
           command: |
-            git clone -qb stable --recursive --depth 15 https://github.com/PurrrsLitterbox/android_kernel_sweet kernel
+            git clone -qb stable --recursive --depth 1 https://github.com/PurrrsLitterbox/android_kernel_sweet kernel
             bash build.sh
           no_output_timeout : 1h
 workflows:

@@ -23,8 +23,9 @@ patch -p1 -N < ../zstd3.patch
 patch -p1 -N < ../zstd4.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
+cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "Drop 140 mhz GPU freq"
+git commit -am "[SQUASH] Drop 140 mhz GPU freq"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -101,7 +102,7 @@ Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 log info "****Cloning Clang****"
 TC_EXT="$KERNELDIR/toolchain"
 mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.0/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
+wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
@@ -163,23 +164,11 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 	log info "          BUILDING KERNEL          "
 	log info "***********************************************"
 
-	make $KERNEL_DEFCONFIG \
-	CC=clang \
-	LD=ld.lld \
-	O=out 2>&1 | tee -a build.log
+	make $KERNEL_DEFCONFIG LLVM=1 O=out 2>&1 | tee -a build.log
 
 	make -j4 O=out LLVM=1 LLVM_IAS=1 \
-    LD="ld.lld" \
-	CC="clang" \
-	HOSTCC="clang" \
-	HOSTCXX="clang++" \
-	AR="llvm-ar" \
-	NM="llvm-nm" \
-	STRIP="llvm-strip" \
-	OBJCOPY="llvm-objcopy" \
-	OBJDUMP="llvm-objdump" \
 	CROSS_COMPILE="aarch64-linux-gnu-" \
-    CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log
+	CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
