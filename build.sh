@@ -21,10 +21,10 @@ patch -p1 -N < ../zstd1.patch
 patch -p1 -N < ../zstd2.patch
 patch -p1 -N < ../zstd3.patch
 patch -p1 -N < ../zstd4.patch
-# patch -p1 -N < ../revert140mhz.patch || exit 1
+patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "[SQUASH] ZSTD: bump to version 1.5.5 & set ZSTD to default zram compression method"
+git commit -am "Drop 140 mhz GPU freq"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -101,7 +101,7 @@ Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 log info "****Cloning Clang****"
 TC_EXT="$KERNELDIR/toolchain"
 mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
+wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.0/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
