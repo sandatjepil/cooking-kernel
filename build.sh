@@ -17,10 +17,6 @@ git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 patch -p1 -N < ../zstd.patch
-patch -p1 -N < ../zstd1.patch
-patch -p1 -N < ../zstd2.patch
-patch -p1 -N < ../zstd3.patch
-patch -p1 -N < ../zstd4.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
 cp -af ../tune.c ./kernel/sched/
@@ -133,13 +129,12 @@ start_cooking() {
 			# Ambil Update KSU-N terbaru
 			patch -p1 -N < ../umount.patch || exit 1
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
-			# git -C "KernelSU-Next" revert -n 21058f79bd5c0e57c96115dfa839a0c6fa839d69
-
-			# Apply scope-minimized patch v1.6
-			# patch -p1 -N < ../kernelsuhook.patch || exit 1
-			
-			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)			
-			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $current_tag 🤫
+			pushd KernelSU
+			patch -p1 -N < ../../ksuver.patch
+			popd			
+			export KSU_VERSION_TAG=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			export KCFLAGS='-DKSU_VERSION_TAG=\"'$KSU_VERSION_TAG'\"'
+			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION_TAG 🤫
 Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager"
 			;;
 		NoKSU)
