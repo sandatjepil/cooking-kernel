@@ -19,9 +19,9 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 patch -p1 -N < ../zstd.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
-cp -af ../tune.c ./kernel/sched/
+# cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "[SQUASH] Drop 140 mhz GPU freq"
+git commit -am "Set Kprofile default to 0 and Recalculate CPU Input boost"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -127,14 +127,15 @@ start_cooking() {
 	case $1 in
 		KSU)
 			# Ambil Update KSU-N terbaru
+			KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
 			patch -p1 -N < ../umount.patch || exit 1
-			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
+			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
 			pushd KernelSU
 			patch -p1 -N < ../../ksuver.patch
 			popd			
-			export KSU_VERSION_TAG=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			export KCFLAGS='-DKSU_VERSION_TAG=\"'$KSU_VERSION_TAG'\"'
-			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION_TAG 🤫
+			KSU_VERSION=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+			export KCFLAGS='-DKSU_VERSION_TAG=\"'"$KSU_VERSION"'\"'
+			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION 🤫
 Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager"
 			;;
 		NoKSU)
