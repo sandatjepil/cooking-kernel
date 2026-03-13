@@ -19,9 +19,9 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 patch -p1 -N < ../zstd.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
-# cp -af ../tune.c ./kernel/sched/
+cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "Set Kprofile default to 0 and Recalculate CPU Input boost"
+git commit -am "Recalculate Sbalance & schedtune boost"
 
 # Set the Variables
 KERNELNAME="Heliasts"
