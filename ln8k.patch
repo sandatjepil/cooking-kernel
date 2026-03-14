@@ -1,0 +1,347 @@
+From 675929b08ae1b14e47b13a06d42b00ed83db3100 Mon Sep 17 00:00:00 2001
+From: Yahya Wessam <yahyawessam2002@gmail.com>
+Date: Sun, 2 Nov 2025 11:49:11 +0200
+Subject: [PATCH] Revert "power: supply: ln8000: cleanup"
+
+This reverts commit c860455cec94dd31f84ae7afddfa8877a2e969c0.
+
+Signed-off-by: Yahya Wessam <yahyawessam2002@gmail.com>
+---
+ drivers/power/supply/ti/ln8000_charger.c    |  89 ++++++++++--
+ drivers/power/supply/ti/pd_policy_manager.c | 143 ++++++++++++++++++--
+ 2 files changed, 209 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/power/supply/ti/ln8000_charger.c b/drivers/power/supply/ti/ln8000_charger.c
+index d77bee63e6ee..90435847a157 100644
+--- a/drivers/power/supply/ti/ln8000_charger.c
++++ b/drivers/power/supply/ti/ln8000_charger.c
+@@ -591,6 +591,19 @@ static void ln8000_irq_sleep(struct ln8000_info *info, int suspend)
+     }
+ }
+ 
++static void ln8000_soft_reset(struct ln8000_info *info)
++{
++    ln8000_write_reg(info, LN8000_REG_LION_CTRL, 0xC6);
++
++    ln8000_irq_sleep(info, 1);
++
++    ln_info("Trigger soft-reset\n");
++    ln8000_update_reg(info, LN8000_REG_BC_OP_2, 0x1 << 0, 0x1 << 0);
++    msleep(5 * 2);  /* ln8000 min wait time 5ms (after POR) */
++
++    ln8000_irq_sleep(info, 0);
++}
++
+ static void ln8000_update_opmode(struct ln8000_info *info)
+ {
+     unsigned int op_mode;
+@@ -801,20 +814,29 @@ static int psy_chg_get_ti_alarm_status(struct ln8000_info *info)
+              (info->tbus_tbat_alarm << BUS_THERM_ALARM_SHIFT) |
+              (info->tdie_alarm << DIE_THERM_ALARM_SHIFT));
+ 
+-    v_offset = info->vbus_uV - (info->vbat_uV * 2);
++    if (info->vbus_uV < (info->vbat_uV * 2)) {
++        v_offset = 0;
++    } else {
++        v_offset = info->vbus_uV - (info->vbat_uV * 2);
++    }
++
+     /* after charging-enabled, When the input current rises above rcp_th(over 200mA), it activates rcp. */
+     if (info->chg_en && !(info->rcp_en)) {
+-        if (info->iin_uA > 200000 && v_offset > 300000) {
++        /* v_offset > 300mV will be impossible sometimes */
++        /* Considering the accuracy of ADC, iin > 400mA better than before */
++        if (info->iin_uA > 400000) {
+             ln8000_enable_rcp(info, 1);
+             ln_info("enabled rcp\n");
+         }
+     }
+     /* If an unplug event occurs when vbus voltage lower then vin_start_up_th, switch to standby mode. */
+     if (info->chg_en && !(info->rcp_en)) {
+-        if (v_offset < 100000) {
++        /* v_offset can be lower then 100mV, because VBAT and VBUS will be closed proceed charging */
++        /* Therefore we need to check ibus current. confirm to charging status */
++        if (info->iin_uA < 70000 && v_offset < 100000) {
+             ln8000_change_opmode(info, LN8000_OPMODE_STANDBY);
+             ln_info("forced change standby_mode for prevent reverse current\n");
+-		info->chg_en = 0;
++            info->chg_en = 0;
+         }
+     }
+ 
+@@ -1390,6 +1412,40 @@ static const struct regmap_config ln8000_regmap_config = {
+     .max_register	= LN8000_REG_MAX,
+ };
+ 
++static int try_to_find_i2c_regess(struct ln8000_info *info)
++{
++	uint8_t reg_set[] = {0x51, 0x55, 0x5b, 0x5f};
++	uint8_t ori_reg = info->client->addr;
++	int i, ret = 0;
++
++	for (i = 0; i < 4; i++) {
++		info->client->addr = reg_set[i];
++		info->regmap = devm_regmap_init_i2c(info->client, &ln8000_regmap_config);
++		ret = i2c_smbus_read_byte_data(info->client, LN8000_REG_DEVICE_ID);
++		if (ret == 0x42) {
++			ln_info("find to can be access regess(0x%02x)(ori=0x%02x).\n",
++					info->client->addr, ori_reg);
++			ln8000_soft_reset(info);
++			return ret;
++		} else {
++			ln_err("can't access regess(0x%02x)(ori=0x%02x).\n",
++					info->client->addr, ori_reg);
++		}
++	}
++
++	info->client->addr = ori_reg;
++	ln_info("retry (0x%02x).\n", info->client->addr);
++	info->regmap = devm_regmap_init_i2c(info->client, &ln8000_regmap_config);
++	ret = i2c_smbus_read_byte_data(info->client, LN8000_REG_DEVICE_ID);
++	if (ret == 0x42) {
++		ln_info("retry (0x%02x) can be access regess.\n", info->client->addr);
++		ln8000_soft_reset(info);
++		return ret;
++	}
++
++	return ret;
++}
++
+ static int ln8000_get_dev_role(struct i2c_client *client)
+ {
+     const struct of_device_id *of_id;
+@@ -1516,19 +1572,26 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
+     struct ln8000_info *info;
+     int ret = 0;
+ 
+-    /* detect device on connected i2c bus */
+-    ret = i2c_smbus_read_byte_data(client, LN8000_REG_DEVICE_ID);
+-    if (IS_ERR_VALUE((unsigned long)ret)) {
+-        dev_err(&client->dev, "fail to detect ln8000 on i2c_bus(addr=0x%x)\n", client->addr);
+-        return -ENODEV;
+-    }
+-
+     info = devm_kzalloc(&client->dev, sizeof(struct ln8000_info), GFP_KERNEL);
+     if (info == NULL) {
+         dev_err(&client->dev, "%s: fail to alloc devm for ln8000_info\n", __func__);
+         return -ENOMEM;
+     }
+ 
++	info->dev = &client->dev;
++	info->client = client;
++
++	/* detect device on connected i2c bus */
++	ret = i2c_smbus_read_byte_data(client, LN8000_REG_DEVICE_ID);
++	if (IS_ERR_VALUE((unsigned long)ret)) {
++		ret = try_to_find_i2c_regess(info);
++		if (ret != 0x42) {
++			dev_err(&client->dev, "fail to detect ln8000 on i2c_bus(addr=0x%x)\n", client->addr);
++			return -ENODEV;
++		}
++	}
++	dev_info(&client->dev, "device id=0x%x\n", ret);
++
+     info->dev_role = ln8000_get_dev_role(client);
+     if (IS_ERR_VALUE((unsigned long)info->dev_role)) {
+         kfree(info);
+@@ -1542,9 +1605,6 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
+        return -ENOMEM;
+     }
+ 
+-    info->dev = &client->dev;
+-    info->client = client;
+-
+     ret = ln8000_parse_dt(info);
+     if (IS_ERR_VALUE((unsigned long)ret)) {
+         ln_err("fail to parsed dt\n");
+@@ -1563,6 +1623,7 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
+     mutex_init(&info->irq_lock);
+     i2c_set_clientdata(client, info);
+ 
++    ln8000_soft_reset(info);
+     ln8000_init_device(info);
+ 
+     ret = ln8000_psy_register(info);
+diff --git a/drivers/power/supply/ti/pd_policy_manager.c b/drivers/power/supply/ti/pd_policy_manager.c
+index e2101bd7895c..4a7b1565f445 100644
+--- a/drivers/power/supply/ti/pd_policy_manager.c
++++ b/drivers/power/supply/ti/pd_policy_manager.c
+@@ -665,6 +665,115 @@ static int usbpd_pm_check_cp_sec_enabled(struct usbpd_pm *pdpm)
+ 	return ret;
+ }
+ 
++static int usbpd_pm_set_cp_charge_mode(struct usbpd_pm *pdpm, int mode)
++{
++	int ret;
++	union power_supply_propval val = {0,};
++
++	usbpd_check_cp_psy(pdpm);
++	if (!pdpm->cp_psy)
++		return -ENODEV;
++
++	if (mode != SC8551_CHARGE_MODE_DIV2 && mode != SC8551_CHARGE_MODE_BYPASS) {
++		pr_err("%s, chg_mode(%d) is invalid.\n", __func__, mode);
++		return -EINVAL;
++	}
++
++	pr_info("%s, chg_mode is set to %d\n", __func__, mode);
++	val.intval = mode;
++	ret = power_supply_set_property(pdpm->cp_psy,
++			POWER_SUPPLY_PROP_TI_CHARGE_MODE, &val);
++
++	return ret;
++}
++
++static int usbpd_pm_update_cp_charge_mode(struct usbpd_pm *pdpm)
++{
++	int fcc = 0, chg_mode = 0;
++	int thermal_level = 0;
++
++	usbpd_check_bms_psy(pdpm);
++	if (!pdpm->bms_psy)
++		return -ENODEV;
++
++	if (pdpm->cp.sc8551_bypass_charge_enable == 0) {
++		chg_mode = SC8551_CHARGE_MODE_DIV2;
++	} else {
++		fcc = usbpd_get_effective_fcc_val(pdpm);
++		pd_get_batt_current_thermal_level(pdpm, &thermal_level);
++		if ((thermal_level > BYPASS_THERMAL_ENTER_LEVEL
++				|| fcc <= BYPASS_FCC_ENTER_THRES)
++				&& pdpm->cp.vbat_volt > BYPASS_VBAT_ENTER_THRES) {
++			chg_mode = SC8551_CHARGE_MODE_BYPASS;
++		} else if (thermal_level < BYPASS_THERMAL_ENTER_LEVEL
++				|| fcc > BYPASS_FCC_EXIT_THRES){
++			chg_mode = SC8551_CHARGE_MODE_DIV2;
++		} else {
++			chg_mode = pdpm->cp.sc8551_charge_mode;
++		}
++	}
++
++	pr_info("bypass_en:%d, cp_chg_mode:%d:%d, therm_level:%d, fcc:%d, vbat:%d\n",
++			pdpm->cp.sc8551_bypass_charge_enable,
++			pdpm->cp.sc8551_charge_mode, chg_mode,
++			thermal_level, fcc, pdpm->cp.vbat_volt);
++
++	return chg_mode;
++}
++
++static int usbpd_pm_check_cp_charge_mode(struct usbpd_pm *pdpm)
++{
++	int ret = 0;
++	union power_supply_propval val = {0,};
++
++	usbpd_check_cp_psy(pdpm);
++	if (!pdpm->cp_psy)
++		return -ENODEV;
++
++	ret = power_supply_get_property(pdpm->cp_psy,
++			POWER_SUPPLY_PROP_TI_CHARGE_MODE, &val);
++	if (!ret)
++		pdpm->cp.sc8551_charge_mode = val.intval;
++
++	return ret;
++}
++
++static int usbpd_pm_switch_cp_charge_mode(struct usbpd_pm *pdpm)
++{
++	int ret = 0;
++	int chg_mode = 0;
++
++	ret = usbpd_pm_check_cp_charge_mode(pdpm);
++	if (ret < 0) {
++		pr_err("Failed to check cp charge mode, ret:%d.\n", ret);
++		return ret;
++	}
++
++	if (pdpm->cp.sc8551_bypass_charge_enable != 1)
++		return -EPERM;
++
++	chg_mode = usbpd_pm_update_cp_charge_mode(pdpm);
++	if (chg_mode != pdpm->cp.sc8551_charge_mode) {
++		if (pdpm->cp.charge_enabled) {
++			usbpd_pm_enable_cp(pdpm, false);
++			msleep(30);
++			usbpd_pm_check_cp_enabled(pdpm);
++		}
++
++		pr_info("cp charge mode switch from %d to %d.\n",
++				pdpm->cp.sc8551_charge_mode, chg_mode);
++		usbpd_pm_set_cp_charge_mode(pdpm, chg_mode);
++
++		ret = usbpd_pm_check_cp_charge_mode(pdpm);
++		if (ret < 0)
++			pr_err("Failed to check cp charge mode, ret:%d.\n", ret);
++
++		ret = 1;
++	}
++
++	return ret;
++}
++
+ static int usbpd_pm_enable_sw(struct usbpd_pm *pdpm, bool enable)
+ {
+ 	int ret;
+@@ -860,6 +969,7 @@ static void usbpd_update_pps_status(struct usbpd_pm *pdpm)
+ #define IBUS_CHANGE_TIMEOUT  (500 / PM_WORK_RUN_INTERVAL)
+ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
+ {
++	int ret = 0;
+ 	int steps;
+ 	int sw_ctrl_steps = 0;
+ 	int hw_ctrl_steps = 0;
+@@ -1024,6 +1134,13 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
+ 		fc2_taper_timer = 0;
+ 	}
+ 
++	/* sc8551 mode switch*/
++	ret = usbpd_pm_switch_cp_charge_mode(pdpm);
++	if (ret > 0) {
++		pr_debug("charge mode changed, re-run statemachine\n");
++		return PM_ALGO_RET_CHG_DISABLED;
++	}
++
+ 	/*TODO: customer can add hook here to check system level
+ 	 * thermal mitigation*/
+ 
+@@ -1031,13 +1148,9 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
+ 	pr_debug("steps: %d, sw_ctrl_steps:%d, hw_ctrl_steps:%d\n", steps, sw_ctrl_steps, hw_ctrl_steps);
+ 	pdpm->request_voltage += steps * STEP_MV;
+ 
+-		pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_limit);
+-
+-	pr_info("steps: %d, pdpm->request_voltage: %d\n", steps, pdpm->request_voltage);
+-
+-	if (pdpm->apdo_max_volt == PPS_VOL_MAX)
++//	if (pdpm->apdo_max_volt == PPS_VOL_MAX)
++//		pdpm->apdo_max_volt = pdpm->apdo_max_volt - PPS_VOL_HYS;
+ 
+-		pdpm->apdo_max_volt = pdpm->apdo_max_volt - PPS_VOL_HYS;
+ 	if (pdpm->request_voltage > pdpm->apdo_max_volt)
+ 		pdpm->request_voltage = pdpm->apdo_max_volt;
+ 
+@@ -1147,9 +1260,21 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
+ 		break;
+ 
+ 	case PD_PM_STATE_FC2_ENTRY_1:
+-		pdpm->request_voltage = pdpm->cp.vbat_volt * 2 + BUS_VOLT_INIT_UP;
+-
+-		pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_lmt);
++		usbpd_pm_switch_cp_charge_mode(pdpm);
++		if (pdpm->cp.sc8551_bypass_charge_enable == 1
++				&& pdpm->cp.sc8551_charge_mode == SC8551_CHARGE_MODE_BYPASS) {
++			if (curr_fcc_lmt > XIAOMI_LOW_POWER_PPS_CURR_MAX)
++				curr_ibus_lmt = XIAOMI_LOW_POWER_PPS_CURR_MAX;
++			else
++				curr_ibus_lmt = curr_fcc_lmt;
++			pdpm->request_voltage = pdpm->cp.vbat_volt + BUS_VOLT_INIT_UP * 2;
++			pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_lmt);
++			pdpm->request_current = min(pdpm->request_current, MAX_BYPASS_CURRENT_MA);
++		} else {
++			curr_ibus_lmt = curr_fcc_lmt >> 1;
++			pdpm->request_voltage = pdpm->cp.vbat_volt * 2 + BUS_VOLT_INIT_UP;
++			pdpm->request_current = min(pdpm->apdo_max_curr, curr_ibus_lmt);
++		}
+ 
+ 		usbpd_select_pdo(pdpm->pd, pdpm->apdo_selected_pdo,
+ 				pdpm->request_voltage * 1000, pdpm->request_current * 1000);

@@ -17,11 +17,12 @@ git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 patch -p1 -N < ../zstd.patch
+patch -p1 -R < ../ln8k.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
 cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "Recalculate Sbalance & schedtune boost"
+git commit -am "stune: recalculate default schedtune boost values"
 
 # Set the Variables
 KERNELNAME="Heliasts"
@@ -122,11 +123,11 @@ MAKE="./makeparallel"
 
 # Now building process is a function
 start_cooking() {
-	FINAL_ZIP="$KERNELNAME-$1-$KERVER-$ZIPDATE"
+	FINAL_ZIP="$KERNELNAME-AOSP-$1-$KERVER-$ZIPDATE"
 	
 	case $1 in
 		KSU)
-			# Ambil Update KSU-N terbaru
+			# Ambil Update xxKSU terbaru
 			KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
 			patch -p1 -N < ../umount.patch || exit 1
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
@@ -224,7 +225,11 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 \`\`\`CHANGELOG
 `git log --oneline -n1 | cut -d" " -f2-`\`\`\`
 
-⚠️ ${BONUS_MSG}"
+🚸 ${BONUS_MSG}
+
+⚠️ AOSP ONLY BUILD!
+
+#Heliasts #BatteryFocusedKrenlol"
 }
 
 case $WITHKSU in
