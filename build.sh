@@ -18,11 +18,12 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 patch -p1 -N < ../zstd.patch
 patch -p1 -R < ../ln8k.patch
+patch -p1 -R < ../90hz.patch
 patch -p1 -N < ../revert140mhz.patch || exit 1
 cp -af ../Makefile ./
 cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "stune: recalculate default schedtune boost values"
+git commit -am "gpu: drop 90hz refresh rate"
 
 # Set the Variables
 KERNELNAME="Heliasts"
