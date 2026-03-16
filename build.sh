@@ -19,8 +19,9 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 # patch -p1 -R < ../90hz.patch
 patch -p1 -N < ../revert140mhz.patch
 patch -p1 -N < ../uclamp.patch || exit 1
+patch -p1 -N < ../iosched.patch || exit 1
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "uclamp: Recalculate tuning"
+git commit -am "iosched: Add Zen IO Scheduler"
 
 # Set the Variables
 KERNELNAME="ElectroWizards"
