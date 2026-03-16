@@ -16,17 +16,17 @@ log(){
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-patch -p1 -N < ../zstd.patch
-patch -p1 -R < ../ln8k.patch
-patch -p1 -R < ../90hz.patch
-patch -p1 -N < ../revert140mhz.patch || exit 1
-cp -af ../Makefile ./
-cp -af ../tune.c ./kernel/sched/
+# patch -p1 -N < ../zstd.patch
+# patch -p1 -R < ../ln8k.patch
+# patch -p1 -R < ../90hz.patch
+# patch -p1 -N < ../revert140mhz.patch || exit 1
+# cp -af ../Makefile ./
+# cp -af ../tune.c ./kernel/sched/
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "gpu: drop 90hz refresh rate"
+git commit -am "test bantomkramul"
 
 # Set the Variables
-KERNELNAME="Heliasts"
+KERNELNAME="ElectroWizards"
 DEVICENAME="Redmi Note 10 Pro (sweet)"
 ANDRVER="11-15"
 ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
@@ -84,6 +84,18 @@ else
 	log info "$2"
 fi
 }
+
+build_fail() {
+if [ -f build.log ]; then
+    tg_post_build "build.log" "Compile failed!!"
+else
+    tg_post_msg "Compile failed without even started"
+fi
+
+log warn "**** Compile Failed!!! ****"
+exit 1
+}
+
 ############################################################
 
 # Additional Variables
@@ -104,7 +116,7 @@ wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/d
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
-[[ -f "$TC_EXT/bin/clang" ]] || exit 1
+[[ -f "$TC_EXT/bin/clang" ]] || build_fail
 
 # export KBUILD_COMPILER_STRING=$("$TC_EXT/bin/clang" --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
@@ -114,7 +126,7 @@ AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb sweet --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log warn "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
-	exit 1
+	build_fail
 fi
 
 log info "***** AnyKernel3 Done! *****"
@@ -130,7 +142,7 @@ start_cooking() {
 		KSU)
 			# Ambil Update xxKSU terbaru
 			KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
-			patch -p1 -N < ../umount.patch || exit 1
+			patch -p1 -N < ../umount.patch || build_fail
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
 			pushd KernelSU
 			patch -p1 -N < ../../ksuver.patch
@@ -149,7 +161,7 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 			;;
 		*)
 			tg_post_msg "what do you want me to do? 😳"
-			exit 1
+			build_fail
 			;;
 	esac
 
@@ -166,15 +178,14 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 
 	make -j4 O=out LLVM=1 LLVM_IAS=1 \
 	CROSS_COMPILE="aarch64-linux-gnu-" \
-	CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log
+	CROSS_COMPILE_ARM32="arm-linux-gnueabi-" \
+	KCFLAGS+=" -Wno-implicit-enum-enum-cast -Wno-default-const-init-field-unsafe -Wno-default-const-init-var-unsafe" 2>&1 | tee -a build.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
 	
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz ]];then
-	    tg_post_build "build.log" "Compile failed!!"
-	    log warn "**** Compile Failed!!! ****"
-	    exit 1
+	  build_fail
 	fi
 	log info "**** Kernel build completed ****"
 	
