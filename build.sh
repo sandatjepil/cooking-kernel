@@ -16,21 +16,18 @@ log(){
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# patch -p1 -N < ../zstd.patch
-# patch -p1 -R < ../ln8k.patch
 # patch -p1 -R < ../90hz.patch
-# patch -p1 -N < ../revert140mhz.patch || exit 1
-# cp -af ../Makefile ./
-# cp -af ../tune.c ./kernel/sched/
+patch -p1 -N < ../revert140mhz.patch
+patch -p1 -N < ../uclamp.patch || exit 1
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "test bantomkramul"
+git commit -am "uclamp: Recalculate tuning"
 
 # Set the Variables
 KERNELNAME="ElectroWizards"
 DEVICENAME="Redmi Note 10 Pro (sweet)"
-ANDRVER="11-15"
-ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
-KERVER=$(make kernelversion)
+ANDRVER="11-16"
+ANDRVERTAG="(Red Velvet Cake - Baklava)"
+KERVER="$(make kernelversion | grep -oP "\d+\.\d+\.\d+")"
 VARIANT="End Of Life"
 export KBUILD_BUILD_HOST="Litterbox"
 
@@ -128,7 +125,10 @@ if ! git clone -qb sweet --depth=1 https://github.com/sandatjepil/AnyKernel3 Any
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
 	build_fail
 fi
-
+pushd "$AK3DIR"
+sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
+sed -i "s/supported.versions=.*/supported.versions=$ANDRVER/g" anykernel.sh
+popd
 log info "***** AnyKernel3 Done! *****"
 
 # Speed up build process
@@ -136,7 +136,7 @@ MAKE="./makeparallel"
 
 # Now building process is a function
 start_cooking() {
-	FINAL_ZIP="$KERNELNAME-AOSP-$1-$KERVER-$ZIPDATE"
+	FINAL_ZIP="$KERNELNAME-AOSP-$1-$ZIPDATE"
 	
 	case $1 in
 		KSU)
@@ -241,7 +241,7 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 
 ⚠️ AOSP ONLY BUILD!
 
-#Heliasts #BatteryFocusedKrenlol"
+#$KERNELNAME #BatteryFocusedKrenlol"
 }
 
 case $WITHKSU in
