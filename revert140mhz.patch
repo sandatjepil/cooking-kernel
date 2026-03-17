@@ -1,4 +1,4 @@
-From 948204dbb3efd10c4e807968e7cd72e6fe64de80 Mon Sep 17 00:00:00 2001
+From 186e2d58c4ce05a602337bde52f118853e9c0c79 Mon Sep 17 00:00:00 2001
 From: Adithya R <gh0strider.2k18.reborn@gmail.com>
 Date: Tue, 23 Nov 2021 18:01:02 +0530
 Subject: [PATCH] gpucc/dts: sdmmagpie: Add 140MHz GPU frequency step
@@ -13,88 +13,84 @@ and reduce the bus frequency as 140Mhz shouldn't be much
 demanding, to reduce power consumption.
 
 [ghostrider-reborn]
-Tested with a few days of normal usage and 3dmark runs at
+- Tested with a few days of normal usage and 3dmark runs at
 140Mhz locked frequency, to see no crashes, artifacts or
 GPU faults.
 
 Co-authored-by: Forenche <prahul2003@gmail.com>
 Signed-off-by: Adithya R <gh0strider.2k18.reborn@gmail.com>
 Signed-off-by: Forenche <prahul2003@gmail.com>
-Change-Id: I027416cfc06cddf388f9cec14ad58d06ddac305d
-Signed-off-by: Richard Raya <rdxzv.dev@gmail.com>
-[vbajs: Adapt with e9e83d3e3faa8b9a9df0f1ec639a2889409b28ce ("gpucc-sdmmagpie: Inline regulators") by simply revert-picking https://github.com/rd-stuffs/msm-4.14/commit/89b42ea28038987abf9cd0090235d8dd2aafa3f3 ]
-Signed-off-by: Yahya Wessam <yahyawessam2002@gmail.com>
 ---
- arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi | 13 ++-----------
- drivers/clk/qcom/gpucc-sdmmagpie.c          |  4 ----
- 2 files changed, 2 insertions(+), 15 deletions(-)
+ arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi | 13 +++++++++++--
+ drivers/clk/qcom/gpucc-sdmmagpie.c          |  4 ++++
+ 2 files changed, 15 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi b/arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi
-index 7ca11745b3f3..b12a05dcc612 100644
+index 159f8d144d2f..34eed9def8f6 100644
 --- a/arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi
 +++ b/arch/arm64/boot/dts/qcom/sdmmagpie-gpu.dtsi
-@@ -526,7 +526,7 @@
+@@ -513,7 +513,7 @@
  
  				qcom,speed-bin = <167>;
  
--				qcom,initial-pwrlevel = <7>;
-+				qcom,initial-pwrlevel = <6>;
+-				qcom,initial-pwrlevel = <6>;
++				qcom,initial-pwrlevel = <7>;
  				qcom,ca-target-pwrlevel = <4>;
  
  				/* TURBO */
-@@ -592,18 +592,9 @@
+@@ -579,9 +579,18 @@
  					qcom,bus-max = <4>;
  				};
  
--				/* RETENTION SVS */
-+				/* XO */
+-				/* XO */
++				/* RETENTION SVS */
  				qcom,gpu-pwrlevel@7 {
  					reg = <7>;
--					qcom,gpu-freq = <140000000>;
--					qcom,bus-freq = <2>;
--					qcom,bus-min = <1>;
--					qcom,bus-max = <2>;
--				};
--
--				/* XO */
--				qcom,gpu-pwrlevel@8 {
--					reg = <8>;
++					qcom,gpu-freq = <140000000>;
++					qcom,bus-freq = <2>;
++					qcom,bus-min = <1>;
++					qcom,bus-max = <2>;
++				};
++
++				/* XO */
++				qcom,gpu-pwrlevel@8 {
++					reg = <8>;
  					qcom,gpu-freq = <0>;
  					qcom,bus-freq = <0>;
  					qcom,bus-min = <0>;
 diff --git a/drivers/clk/qcom/gpucc-sdmmagpie.c b/drivers/clk/qcom/gpucc-sdmmagpie.c
-index cdcc26000e38..1700798cdc36 100644
+index 4655b3ef77bd..5bb1f8762dd1 100644
 --- a/drivers/clk/qcom/gpucc-sdmmagpie.c
 +++ b/drivers/clk/qcom/gpucc-sdmmagpie.c
-@@ -39,7 +39,6 @@
+@@ -39,6 +39,7 @@
  
  enum vdd_gx_levels {
  	VDD_GX_NONE,
--	VDD_GX_RETENTION,
- 	VDD_GX_MIN,
- 	VDD_GX_LOWER,
- 	VDD_GX_LOW,
-@@ -50,7 +51,6 @@ enum vdd_gx_levels {
++	VDD_GX_RETENTION,	/* RETENTION SVS */
+ 	VDD_GX_MIN,		/* MIN SVS */
+ 	VDD_GX_LOWER,		/* SVS2 */
+ 	VDD_GX_LOW,		/* SVS */
+@@ -52,6 +53,7 @@ enum vdd_gx_levels {
  
  static int vdd_gx_corner[] = {
- 	0 + 1,				/* VDD_GX_NONE */
--	16 + 1,				/* VDD_GX_RETENTION */
- 	24 + 1,				/* VDD_GX_MIN */
- 	48 + 1,				/* VDD_GX_LOWER */
- 	94 + 1,				/* VDD_GX_LOW */
-@@ -273,7 +275,6 @@ static struct clk_rcg2 gpu_cc_gmu_clk_src = {
+ 	RPMH_REGULATOR_LEVEL_OFF,		/* VDD_GX_NONE */
++	RPMH_REGULATOR_LEVEL_RETENTION + 4,	/* VDD_GX_RETENTION */
+ 	RPMH_REGULATOR_LEVEL_MIN_SVS,		/* VDD_GX_MIN */
+ 	RPMH_REGULATOR_LEVEL_LOW_SVS,		/* VDD_GX_LOWER */
+ 	RPMH_REGULATOR_LEVEL_SVS,		/* VDD_GX_LOW */
+@@ -277,6 +279,7 @@ static struct clk_rcg2 gpu_cc_gmu_clk_src = {
  };
  
  static const struct freq_tbl ftbl_gpu_cc_gx_gfx3d_clk_src[] = {
--	F(140000000, P_CRC_DIV, 1, 0, 0),
++	F(140000000, P_CRC_DIV, 1, 0, 0),
  	F(180000000, P_CRC_DIV, 1, 0, 0),
  	F(267000000, P_CRC_DIV, 1, 0, 0),
  	F(355000000, P_CRC_DIV, 1, 0, 0),
-@@ -304,7 +307,6 @@ static struct clk_rcg2 gpu_cc_gx_gfx3d_clk_src = {
+@@ -308,6 +311,7 @@ static struct clk_rcg2 gpu_cc_gx_gfx3d_clk_src = {
  		.vdd_class = &vdd_gx,
  		.num_rate_max = VDD_GX_NUM,
  		.rate_max = (unsigned long[VDD_GX_NUM]) {
--			[VDD_GX_RETENTION] = 140000000,
++			[VDD_GX_RETENTION] = 140000000,
  			[VDD_GX_MIN] = 180000000,
  			[VDD_GX_MIN] = 267000000,
- 			[VDD_GX_LOWER] = 355000000,
+ 			[VDD_GX_MIN] = 355000000,
