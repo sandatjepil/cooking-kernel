@@ -1,9 +1,30 @@
+From 32ecd869a19faa5b50a822e09df010570a4d2f08 Mon Sep 17 00:00:00 2001
+From: Agus Suristyono <sandatjepil@proton.me>
+Date: Wed, 18 Mar 2026 11:03:19 +0700
+Subject: [PATCH] Recalculate Uclamp Tuning
+
+Signed-off-by: Agus Suristyono <sandatjepil@proton.me>
+---
+ kernel/sched/core.c | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index abcdef1..abcdef2 100644
+index 81bb97b..2af5198 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -8730,11 +8730,11 @@ static void uclamp_set(struct cgroup_subsys_state *css)
-	static struct uclamp_param tgts[] = {
+@@ -767,7 +767,7 @@ static void set_load_weight(struct task_struct *p)
+ static DEFINE_MUTEX(uclamp_mutex);
+ 
+ /* Max allowed minimum utilization */
+-unsigned int sysctl_sched_uclamp_util_min = 128;
++unsigned int sysctl_sched_uclamp_util_min = 0;
+ 
+ /* Max allowed maximum utilization */
+ unsigned int sysctl_sched_uclamp_util_max = SCHED_CAPACITY_SCALE;
+@@ -8732,15 +8732,15 @@ static void uclamp_set(struct cgroup_subsys_state *css)
+ 	int i;
+ 
+ 	static struct uclamp_param tgts[] = {
 -		{"top-app",            "10",  "max",  1, 1, 20480},
 -		{"rt",			"0",  "max",  1, 0, 20480},
 -		{"nnapi-hal",		"0",  "max",  1, 0, 20480},
@@ -13,13 +34,15 @@ index abcdef1..abcdef2 100644
 -                {"dex2oat",             "0",  "60",   0, 0,   512},
 -        	{"background",          "0",  "50",   0, 0,  1024},
 -        	{"system-background",   "0",  "50",   0, 0,  1024},
-+		{"top-app",            "12",  "75",   0, 0, 20480},
-+		{"rt",                 "0",   "max",  1, 0, 20480},
++		{"top-app",            "5",  "75",   0, 0, 20480},
++		{"rt",                 "0",   "max",  0, 0, 20480},
 +		{"nnapi-hal",          "0",   "80",   0, 0, 20480},
-+		{"foreground",         "6",   "60",   0, 0, 20480},
-+		{"camera-daemon",      "10",  "max",  1, 1, 20480},
++		{"foreground",         "3",   "60",   0, 0, 20480},
++		{"camera-daemon",      "5",  "max",  1, 0, 20480},
 +		{"system",             "0",   "50",   0, 0, 20480},
 +		{"dex2oat",            "0",   "50",   0, 0,   512},
-+		{"background",         "0",   "40",   0, 0,  1024},
-+		{"system-background",  "0",   "40",   0, 0,  1024},
-	};
++		{"background",         "0",   "25",   0, 0,  1024},
++		{"system-background",  "0",   "25",   0, 0,  1024},
+ 	};
+ 
+         if(!css->cgroup->kn)
