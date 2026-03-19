@@ -16,13 +16,22 @@ log(){
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+git reset --hard 28ff3ddb33a4451c1067de2cd77c1cd80e0fa734
+git cherry-pick 853730f7c0498d43269b1eec7979ce260dad29bf a4d97d15cb6ae7f71b1e733177e7dfe1320c9635
+git cherry-pick "233dfdc45c728ec7c9b02e234e752eae4175422d^..19dc4e7e1ec5bcdcceacd6436cabb8c4e7de1a7d"
+git cherry-pick "b968a3785dfb99a36a97d1985a5a803ec08c0be1^..d8ef0834ac7aaf0c0ac71bd83f5c5334ea760a8a"
+git cherry-pick 4acbdf374a97ff19f8d661a8ac8bd657152d07e5
+git cherry-pick "79154484e0d888da7085450e2bc9a5d44ae6192e^..29c11298c8207f0846a528c633a902748c0048a9"
+git cherry-pick "430a8340913f1f1ed0c4a6f156fd046abe7da838^..cb67f062d8fda4fa4199a8bc519a4e6156b9f910"
+git cherry-pick "633cc751a86b9b5a7a0975aa13044b325492b513^..083ed0c977e85bffaee2696fe3762c5400d350be"
+
+rm -rf KernelSU
+
 # Set Kernelname
-sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Ἡλιαστής🏛"/g' arch/arm64/configs/X00TD_defconfig
+sed -i 's/CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-Heliasts-Cassiopheia"/g' arch/arm64/configs/X00TD_defconfig
 # Disable Trace Printk
 sed -i 's/CONFIG_TRACE_PRINTK=.*/CONFIG_TRACE_PRINTK=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-sed -i 's/CONFIG_ZRAM_SIZE_OVERRIDE=.*/CONFIG_ZRAM_SIZE_OVERRIDE=2048/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
-
-git revert -n 1aee30dc4098f50b6d19ea27ae71e97bfb7b970b 118f4dc55f68ab60a787b369ee91dc9c63bab9f8 3c93a9e685f4fd11945469e3bfe66eef2af7e833 5293e98e7632ec5c980b8604a85e008df077fb01 393fde8b7df4a3bc8a29061ee1ccfe6966d64bed 42642b4aedc45d2f42f7c86fb6872b0693e04ee2 0ebd3ac01279421990803392ab5c8763c7826d95
+sed -i 's/CONFIG_ZRAM_SIZE_OVERRIDE=.*/CONFIG_ZRAM_SIZE_OVERRIDE=1024/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 
 git commit -am "[SQUASH] Use stock frequencies"
 
@@ -84,6 +93,14 @@ else
 	log info "$2"
 fi
 }
+
+build_fail() {
+if [ -f build.log ]; then
+    tg_post_build "build.log" "Compile failed!!"
+else
+    tg_post_msg "Compile failed without even started, <a href='$CIRCLE_BUILD_URL'>click here!</a>"
+fi
+}
 ############################################################
 
 # Additional Variables
@@ -103,7 +120,7 @@ mkdir -p "$TC_EXT" && pushd "$TC_EXT"
 wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
-[[ -f "$TC_EXT/bin/clang" ]] || exit 1
+[[ -f "$TC_EXT/bin/clang" ]] || build_fail
 
 # export KBUILD_COMPILER_STRING=$("$TC_EXT/bin/clang" --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
@@ -113,7 +130,7 @@ AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb four4-hmp --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log warn "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
-	exit 1
+	build_fail
 fi
 
 cd "$AK3DIR"
@@ -156,35 +173,28 @@ start_cooking() {
 	
 	case $1 in
 		KSU)
-			# Update KSU-Next Otomatis
-			# Fetch tags dari remote
-			git -C "$KERNELDIR/KernelSU" fetch --tags --quiet
-			current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			# latest_tag=$(git -C "$KERNELDIR/KernelSU" tag --sort=-v:refname | head -n 1)
-			latest_tag="v1.1.1"
+            # Ambil Update xxKSU terbaru
+            KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
+            curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
+            git cherry-pick 5aaa1eb484991a8ff2b496641a76ea00c16cef16
+            pushd KernelSU
+            patch -p1 -N < ../../ksuver.patch
+            popd                        
+            KSU_VERSION=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
+            export KCFLAGS='-DKSU_VERSION_TAG=\"'"$KSU_VERSION"'\"'
+            BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION 🤫
+Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager"
 
-			if [[ "$current_tag" != "$latest_tag" ]]; then
-			    log info "🚀 KSU-Next versi baru tersedia: $latest_tag (saat ini $current_tag)"
-			    git -C "$KERNELDIR/KernelSU" checkout --quiet "$latest_tag"
-			    current_tag=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			else
-			    log info "KSU-Next Sudah di versi terbaru."
-			fi
-
-			# rm -rf "$KERNELDIR/KernelSU"
-			# curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.1
-
-			# Konfigurasi defconfig
-			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=y/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS=.*/CONFIG_KALLSYMS=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_KALLSYMS_ALL=.*/CONFIG_KALLSYMS_ALL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			sed -i 's/CONFIG_DEBUG_KERNEL=.*/CONFIG_DEBUG_KERNEL=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
+			echo "
+CONFIG_KSU=y
+CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+" >> "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
 			
 			# Commit perubahan yang ada agar masuk ke changelog
-			git add KernelSU && git commit -m "KernelSU-Next: sync to $current_tag"
-			
-			BONUS_MSG="*Note:* KernelSU-Next updated to $current_tag 🤫
-Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Next/releases) to download the manager"
+			git add KernelSU && git commit -m "KernelSU-Next: sync to $KSU_VERSION"
 			;;
 		NoKSU)
 			sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/X00TD_defconfig
@@ -195,7 +205,7 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 			;;
 		*)
 			tg_post_msg "what do you want me to do? 😳"
-			exit 1
+			build_fail
 			;;
 	esac
 
@@ -240,7 +250,7 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz-dtb ]];then
 	    tg_post_build "build.log" "Compile failed!!"
 	    log warn "**** Compile Failed!!! ****"
-	    exit 1
+	    build_fail
 	fi
 	log info "**** Kernel build completed ****"
 	
@@ -254,7 +264,7 @@ Check [KernelSU-Next release page](https://github.com/KernelSU-Next/KernelSU-Nex
 	
 	if ! [[ -f $FINAL_ZIP.zip ]]; then
 	    tg_post_build "$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb" "Failed to zipping the kernel, Sending image file instead."
-	    exit 1
+	    build_fail
 	fi
 
 	if [[ $SIGN == 1 ]]; then
