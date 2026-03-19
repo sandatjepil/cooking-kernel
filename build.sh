@@ -20,6 +20,7 @@ PATCH_APPLY=(
 "uclamp.patch"
 "iosched.patch"
 "ln8k.patch"
+"lineage.patch"
 )
 PATCH_REVERT=(
 "revert140mhz.patch"
@@ -27,7 +28,7 @@ PATCH_REVERT=(
 
 # patch -p1 -R < ../90hz.patch
 cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "[SQUASH] power: Add LN8000 charger driver and optimize charging mechanism"
+git commit -am "merge remote tracking branch 'LineageOS/android_kernel_xiaomi_sm6150' into 16"
 
 # Set the Variables
 KERNELNAME="ElectroWizards"

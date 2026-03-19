@@ -1,0 +1,4119 @@
+From 78411b6e43ea6d55b8a5f0ad22cad60a357a78c4 Mon Sep 17 00:00:00 2001
+From: zhaoyuenan <amktiao030215@gmail.com>
+Date: Sat, 13 Dec 2025 14:50:27 +0800
+Subject: [PATCH] fixup! bpf: decouple the lifetime of cgroup_bpf from cgroup
+ itself
+
+We encountered UAF issue with bpf cgroup, which was caused by this patch.
+dda4eba1d ("bpf: decouple the lifetime of cgroup_bpf from cgroup itself")
+
+By comparing this patch in the upstream torvalds/Linux kernel tree[1],
+we found that we missed a line of changes in the qcom_sm8150 kernel tree.
+
+This can lead to a reference counting lifetime inconsistency,
+causing a UAF issue in the function "__cgroup_bpf_run_filter_skb",
+which can lead to kernel panics and random reboot issuse.
+
+The changes in our kernel tree [2] separated a portion of the code in
+the cgroup_sk_alloc function into the cgroup_sk_clone function. Therefore,
+the changes omission in dda4eba1d need to be added to cgroup_sk_clone to
+fix the inconsistency in reference counting.
+
+Consistent with cgroup_sk_clone in GKI android13-5.10 [3]
+[1]: https://github.com/torvalds/linux/commit/4bfc0bb2c
+[2]: https://github.com/LineageOS/android_kernel_qcom_sm8150/commit/82fd2138a
+[3]: https://github.com/aosp-mirror/kernel_common/blob/android13-5.10/kernel/cgroup/cgroup.c#L6731
+     https://github.com/aosp-mirror/kernel_common/commit/ad0f75e5f57ccbceec13274e1e242f2b5a6397ed
+Fixes: https://gitlab.com/LineageOS/issues/android/-/issues/9458
+
+The co-authors have reported stable operation on their devices for 7 days
+without any further restart issues caused by __cgroup_bpf_run_filter_skb.
+
+Co-authored-by: TwinbornPlate75 <3342733415@qq.com>
+Co-authored-by: zhaoyuenan <amktiao030215@gmail.com>
+Co-authored-by: Helium-Studio <helium_studio@outlook.com>
+Co-authored-by: Hxsyzl <knbn666@gmail.com>
+Co-authored-by: crrashh1542 <1542@crrashh.com>
+Change-Id: Iba7ad237a53fec10bc89c7e8c716e899158dfad2
+---
+ kernel/cgroup/cgroup.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
+index ad0244ffcf6f..16a4d43ab569 100644
+--- a/kernel/cgroup/cgroup.c
++++ b/kernel/cgroup/cgroup.c
+@@ -6101,6 +6101,7 @@ void cgroup_sk_clone(struct sock_cgroup_data *skcd)
+ 		 * Don't use cgroup_get_live().
+ 		 */
+ 		cgroup_get(sock_cgroup_ptr(skcd));
++		cgroup_bpf_get(sock_cgroup_ptr(skcd));
+ 	}
+ }
+ 
+
+From 2c451a2069818147c38667e217a7eee4b3e63254 Mon Sep 17 00:00:00 2001
+From: Bhaumik Bhatt <bbhatt@codeaurora.org>
+Date: Tue, 2 Feb 2021 16:50:41 -0800
+Subject: [PATCH] BACKPORT: bus: mhi: core: Remove WQ_MEM_RECLAIM flag due to
+ warnings
+
+Remove the WQ_MEM_RECLAIM flag from alloc_ordered_workqueue() as
+network driver flushes its workqueues without it which generates
+a warning after MHI clean-up is performed.
+
+Change-Id: I835203692496c75d58587fd2bcd5a1287ab59955
+Signed-off-by: Bhaumik Bhatt <bbhatt@codeaurora.org>
+---
+ drivers/bus/mhi/core/mhi_init.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/bus/mhi/core/mhi_init.c b/drivers/bus/mhi/core/mhi_init.c
+index 06424680f4f5..7f8024d34875 100644
+--- a/drivers/bus/mhi/core/mhi_init.c
++++ b/drivers/bus/mhi/core/mhi_init.c
+@@ -1555,8 +1555,7 @@ int of_register_mhi_controller(struct mhi_controller *mhi_cntrl)
+ 	INIT_WORK(&mhi_cntrl->st_worker, mhi_pm_st_worker);
+ 	init_waitqueue_head(&mhi_cntrl->state_event);
+ 
+-	mhi_cntrl->wq = alloc_ordered_workqueue("mhi_w",
+-						WQ_MEM_RECLAIM | WQ_HIGHPRI);
++	mhi_cntrl->wq = alloc_ordered_workqueue("mhi_w", WQ_HIGHPRI);
+ 	if (!mhi_cntrl->wq)
+ 		goto error_alloc_cmd;
+ 
+
+From 71799c644a82b968ebc4e05ec022059e1e2cea78 Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Fri, 24 May 2019 11:30:34 +0200
+Subject: [PATCH] BACKPORT: open: add close_range()
+
+This adds the close_range() syscall. It allows to efficiently close a range
+of file descriptors up to all file descriptors of a calling task.
+
+I was contacted by FreeBSD as they wanted to have the same close_range()
+syscall as we proposed here. We've coordinated this and in the meantime, Kyle
+was fast enough to merge close_range() into FreeBSD already in April:
+https://reviews.freebsd.org/D21627
+https://svnweb.freebsd.org/base?view=revision&revision=359836
+and the current plan is to backport close_range() to FreeBSD 12.2 (cf. [2])
+once its merged in Linux too. Python is in the process of switching to
+close_range() on FreeBSD and they are waiting on us to merge this to switch on
+Linux as well: https://bugs.python.org/issue38061
+
+The syscall came up in a recent discussion around the new mount API and
+making new file descriptor types cloexec by default. During this
+discussion, Al suggested the close_range() syscall (cf. [1]). Note, a
+syscall in this manner has been requested by various people over time.
+
+First, it helps to close all file descriptors of an exec()ing task. This
+can be done safely via (quoting Al's example from [1] verbatim):
+
+        /* that exec is sensitive */
+        unshare(CLONE_FILES);
+        /* we don't want anything past stderr here */
+        close_range(3, ~0U);
+        execve(....);
+
+The code snippet above is one way of working around the problem that file
+descriptors are not cloexec by default. This is aggravated by the fact that
+we can't just switch them over without massively regressing userspace. For
+a whole class of programs having an in-kernel method of closing all file
+descriptors is very helpful (e.g. demons, service managers, programming
+language standard libraries, container managers etc.).
+(Please note, unshare(CLONE_FILES) should only be needed if the calling
+task is multi-threaded and shares the file descriptor table with another
+thread in which case two threads could race with one thread allocating file
+descriptors and the other one closing them via close_range(). For the
+general case close_range() before the execve() is sufficient.)
+
+Second, it allows userspace to avoid implementing closing all file
+descriptors by parsing through /proc/<pid>/fd/* and calling close() on each
+file descriptor. From looking at various large(ish) userspace code bases
+this or similar patterns are very common in:
+- service managers (cf. [4])
+- libcs (cf. [6])
+- container runtimes (cf. [5])
+- programming language runtimes/standard libraries
+  - Python (cf. [2])
+  - Rust (cf. [7], [8])
+As Dmitry pointed out there's even a long-standing glibc bug about missing
+kernel support for this task (cf. [3]).
+In addition, the syscall will also work for tasks that do not have procfs
+mounted and on kernels that do not have procfs support compiled in. In such
+situations the only way to make sure that all file descriptors are closed
+is to call close() on each file descriptor up to UINT_MAX or RLIMIT_NOFILE,
+OPEN_MAX trickery (cf. comment [8] on Rust).
+
+The performance is striking. For good measure, comparing the following
+simple close_all_fds() userspace implementation that is essentially just
+glibc's version in [6]:
+
+static int close_all_fds(void)
+{
+        int dir_fd;
+        DIR *dir;
+        struct dirent *direntp;
+
+        dir = opendir("/proc/self/fd");
+        if (!dir)
+                return -1;
+        dir_fd = dirfd(dir);
+        while ((direntp = readdir(dir))) {
+                int fd;
+                if (strcmp(direntp->d_name, ".") == 0)
+                        continue;
+                if (strcmp(direntp->d_name, "..") == 0)
+                        continue;
+                fd = atoi(direntp->d_name);
+                if (fd == dir_fd || fd == 0 || fd == 1 || fd == 2)
+                        continue;
+                close(fd);
+        }
+        closedir(dir);
+        return 0;
+}
+
+to close_range() yields:
+1. closing 4 open files:
+   - close_all_fds(): ~280 us
+   - close_range():    ~24 us
+
+2. closing 1000 open files:
+   - close_all_fds(): ~5000 us
+   - close_range():   ~800 us
+
+close_range() is designed to allow for some flexibility. Specifically, it
+does not simply always close all open file descriptors of a task. Instead,
+callers can specify an upper bound.
+This is e.g. useful for scenarios where specific file descriptors are
+created with well-known numbers that are supposed to be excluded from
+getting closed.
+For extra paranoia close_range() comes with a flags argument. This can e.g.
+be used to implement extension. Once can imagine userspace wanting to stop
+at the first error instead of ignoring errors under certain circumstances.
+There might be other valid ideas in the future. In any case, a flag
+argument doesn't hurt and keeps us on the safe side.
+
+From an implementation side this is kept rather dumb. It saw some input
+from David and Jann but all nonsense is obviously my own!
+- Errors to close file descriptors are currently ignored. (Could be changed
+  by setting a flag in the future if needed.)
+- __close_range() is a rather simplistic wrapper around __close_fd().
+  My reasoning behind this is based on the nature of how __close_fd() needs
+  to release an fd. But maybe I misunderstood specifics:
+  We take the files_lock and rcu-dereference the fdtable of the calling
+  task, we find the entry in the fdtable, get the file and need to release
+  files_lock before calling filp_close().
+  In the meantime the fdtable might have been altered so we can't just
+  retake the spinlock and keep the old rcu-reference of the fdtable
+  around. Instead we need to grab a fresh reference to the fdtable.
+  If my reasoning is correct then there's really no point in fancyfying
+  __close_range(): We just need to rcu-dereference the fdtable of the
+  calling task once to cap the max_fd value correctly and then go on
+  calling __close_fd() in a loop.
+
+/* References */
+[1]: https://lore.kernel.org/lkml/20190516165021.GD17978@ZenIV.linux.org.uk/
+[2]: https://github.com/python/cpython/blob/9e4f2f3a6b8ee995c365e86d976937c141d867f8/Modules/_posixsubprocess.c#L220
+[3]: https://sourceware.org/bugzilla/show_bug.cgi?id=10353#c7
+[4]: https://github.com/systemd/systemd/blob/5238e9575906297608ff802a27e2ff9effa3b338/src/basic/fd-util.c#L217
+[5]: https://github.com/lxc/lxc/blob/ddf4b77e11a4d08f09b7b9cd13e593f8c047edc5/src/lxc/start.c#L236
+[6]: https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/grantpt.c;h=2030e07fa6e652aac32c775b8c6e005844c3c4eb;hb=HEAD#l17
+     Note that this is an internal implementation that is not exported.
+     Currently, libc seems to not provide an exported version of this
+     because of missing kernel support to do this.
+     Note, in a recent patch series Florian made grantpt() a nop thereby
+     removing the code referenced here.
+[7]: https://github.com/rust-lang/rust/issues/12148
+[8]: https://github.com/rust-lang/rust/blob/5f47c0613ed4eb46fca3633c1297364c09e5e451/src/libstd/sys/unix/process2.rs#L303-L308
+     Rust's solution is slightly different but is equally unperformant.
+     Rust calls getdtablesize() which is a glibc library function that
+     simply returns the current RLIMIT_NOFILE or OPEN_MAX values. Rust then
+     goes on to call close() on each fd. That's obviously overkill for most
+     tasks. Rarely, tasks - especially non-demons - hit RLIMIT_NOFILE or
+     OPEN_MAX.
+     Let's be nice and assume an unprivileged user with RLIMIT_NOFILE set
+     to 1024. Even in this case, there's a very high chance that in the
+     common case Rust is calling the close() syscall 1021 times pointlessly
+     if the task just has 0, 1, and 2 open.
+
+Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
+Change-Id: I2f7abcf9210a1e79855837d1b7c580cc7f7a38e2
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Kyle Evans <self@kyle-evans.net>
+Cc: Jann Horn <jannh@google.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Dmitry V. Levin <ldv@altlinux.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Florian Weimer <fweimer@redhat.com>
+Cc: linux-api@vger.kernel.org
+---
+ fs/file.c                | 64 +++++++++++++++++++++++++++++++++++-----
+ fs/open.c                | 20 +++++++++++++
+ include/linux/fdtable.h  |  2 ++
+ include/linux/syscalls.h |  2 ++
+ 4 files changed, 80 insertions(+), 8 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 5d3fe555cfb1..a0e809b0cbb8 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -10,6 +10,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/export.h>
+ #include <linux/fs.h>
++#include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <linux/mmzone.h>
+ #include <linux/time.h>
+@@ -617,12 +618,9 @@ void fd_install(unsigned int fd, struct file *file)
+ 
+ EXPORT_SYMBOL(fd_install);
+ 
+-/*
+- * The same warnings as for __alloc_fd()/__fd_install() apply here...
+- */
+-int __close_fd(struct files_struct *files, unsigned fd)
++static struct file *pick_file(struct files_struct *files, unsigned fd)
+ {
+-	struct file *file;
++	struct file *file = NULL;
+ 	struct fdtable *fdt;
+ 
+ 	spin_lock(&files->file_lock);
+@@ -636,12 +634,62 @@ int __close_fd(struct files_struct *files, unsigned fd)
+ 	rcu_assign_pointer(fdt->fd[fd], NULL);
+ 	__clear_close_on_exec(fd, fdt);
+ 	__put_unused_fd(files, fd);
+-	spin_unlock(&files->file_lock);
+-	return filp_close(file, files);
+ 
+ out_unlock:
+ 	spin_unlock(&files->file_lock);
+-	return -EBADF;
++	return file;
++}
++
++/*
++ * The same warnings as for __alloc_fd()/__fd_install() apply here...
++ */
++int __close_fd(struct files_struct *files, unsigned fd)
++{
++	struct file *file;
++
++	file = pick_file(files, fd);
++	if (!file)
++		return -EBADF;
++
++	return filp_close(file, files);
++}
++
++/**
++ * __close_range() - Close all file descriptors in a given range.
++ *
++ * @fd:     starting file descriptor to close
++ * @max_fd: last file descriptor to close
++ *
++ * This closes a range of file descriptors. All file descriptors
++ * from @fd up to and including @max_fd are closed.
++ */
++int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
++{
++	unsigned int cur_max;
++
++	if (fd > max_fd)
++		return -EINVAL;
++
++	rcu_read_lock();
++	cur_max = files_fdtable(files)->max_fds;
++	rcu_read_unlock();
++
++	/* cap to last valid index into fdtable */
++	cur_max--;
++
++	max_fd = min(max_fd, cur_max);
++	while (fd <= max_fd) {
++		struct file *file;
++
++		file = pick_file(files, fd++);
++		if (!file)
++			continue;
++
++		filp_close(file, files);
++		cond_resched();
++	}
++
++	return 0;
+ }
+ 
+ void do_close_on_exec(struct files_struct *files)
+diff --git a/fs/open.c b/fs/open.c
+index f9b82c7e238f..16e434e11118 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -1201,6 +1201,26 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
+ }
+ EXPORT_SYMBOL(sys_close);
+ 
++/**
++ * close_range() - Close all file descriptors in a given range.
++ *
++ * @fd:     starting file descriptor to close
++ * @max_fd: last file descriptor to close
++ * @flags:  reserved for future extensions
++ *
++ * This closes a range of file descriptors. All file descriptors
++ * from @fd up to and including @max_fd are closed.
++ * Currently, errors to close a given file descriptor are ignored.
++ */
++SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
++		unsigned int, flags)
++{
++	if (flags)
++		return -EINVAL;
++
++	return __close_range(current->files, fd, max_fd);
++}
++
+ /*
+  * This routine simulates a hangup on the tty, to arrange that users
+  * are given clean terminals at login time.
+diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+index 41615f38bcff..008235491c12 100644
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -121,6 +121,8 @@ extern void __fd_install(struct files_struct *files,
+ 		      unsigned int fd, struct file *file);
+ extern int __close_fd(struct files_struct *files,
+ 		      unsigned int fd);
++extern int __close_range(struct files_struct *files, unsigned int fd,
++			 unsigned int max_fd);
+ 
+ extern struct kmem_cache *files_cachep;
+ 
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index bfee92f3d16b..b06e82a929c3 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -553,6 +553,8 @@ asmlinkage long sys_creat(const char __user *pathname, umode_t mode);
+ asmlinkage long sys_open(const char __user *filename,
+ 				int flags, umode_t mode);
+ asmlinkage long sys_close(unsigned int fd);
++asmlinkage long sys_close_range(unsigned int fd, unsigned int max_fd,
++				unsigned int flags);
+ asmlinkage long sys_access(const char __user *filename, int mode);
+ asmlinkage long sys_vhangup(void);
+ asmlinkage long sys_chown(const char __user *filename,
+
+From b430b6e5f5ffbbd9c9e54e25124a60b3fc0e497b Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Wed, 3 Jun 2020 21:48:55 +0200
+Subject: [PATCH] BACKPORT: close_range: add CLOSE_RANGE_UNSHARE
+
+One of the use-cases of close_range() is to drop file descriptors just before
+execve(). This would usually be expressed in the sequence:
+
+unshare(CLONE_FILES);
+close_range(3, ~0U);
+
+as pointed out by Linus it might be desirable to have this be a part of
+close_range() itself under a new flag CLOSE_RANGE_UNSHARE.
+
+This expands {dup,unshare)_fd() to take a max_fds argument that indicates the
+maximum number of file descriptors to copy from the old struct files. When the
+user requests that all file descriptors are supposed to be closed via
+close_range(min, max) then we can cap via unshare_fd(min) and hence don't need
+to do any of the heavy fput() work for everything above min.
+
+The patch makes it so that if CLOSE_RANGE_UNSHARE is requested and we do in
+fact currently share our file descriptor table we create a new private copy.
+We then close all fds in the requested range and finally after we're done we
+install the new fd table.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Change-Id: I0813045886501e40a45693ee1edad50bdf2b66e5
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c                        | 65 ++++++++++++++++++++++++++++----
+ fs/open.c                        |  5 +--
+ include/linux/fdtable.h          |  8 ++--
+ include/uapi/linux/close_range.h |  9 +++++
+ kernel/fork.c                    | 11 +++---
+ 5 files changed, 79 insertions(+), 19 deletions(-)
+ create mode 100644 include/uapi/linux/close_range.h
+
+diff --git a/fs/file.c b/fs/file.c
+index a0e809b0cbb8..aa9bebedfe6c 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -23,6 +23,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/spinlock.h>
+ #include <linux/rcupdate.h>
++#include <linux/close_range.h>
+ #include <linux/workqueue.h>
+ 
+ unsigned int sysctl_nr_open __read_mostly = 1024*1024;
+@@ -270,12 +271,22 @@ static unsigned int count_open_files(struct fdtable *fdt)
+ 	return i;
+ }
+ 
++static unsigned int sane_fdtable_size(struct fdtable *fdt, unsigned int max_fds)
++{
++	unsigned int count;
++
++	count = count_open_files(fdt);
++	if (max_fds < NR_OPEN_DEFAULT)
++		max_fds = NR_OPEN_DEFAULT;
++	return min(count, max_fds);
++}
++
+ /*
+  * Allocate a new files structure and copy contents from the
+  * passed in files structure.
+  * errorp will be valid only when the returned files_struct is NULL.
+  */
+-struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
++struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int *errorp)
+ {
+ 	struct files_struct *newf;
+ 	struct file **old_fds, **new_fds;
+@@ -302,7 +313,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
+ 
+ 	spin_lock(&oldf->file_lock);
+ 	old_fdt = files_fdtable(oldf);
+-	open_files = count_open_files(old_fdt);
++	open_files = sane_fdtable_size(old_fdt, max_fds);
+ 
+ 	/*
+ 	 * Check whether we need to allocate a larger fd array and fd set.
+@@ -333,7 +344,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
+ 		 */
+ 		spin_lock(&oldf->file_lock);
+ 		old_fdt = files_fdtable(oldf);
+-		open_files = count_open_files(old_fdt);
++		open_files = sane_fdtable_size(old_fdt, max_fds);
+ 	}
+ 
+ 	copy_fd_bitmaps(new_fdt, old_fdt, open_files);
+@@ -663,32 +674,72 @@ int __close_fd(struct files_struct *files, unsigned fd)
+  * This closes a range of file descriptors. All file descriptors
+  * from @fd up to and including @max_fd are closed.
+  */
+-int __close_range(struct files_struct *files, unsigned fd, unsigned max_fd)
++int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ {
+ 	unsigned int cur_max;
++	struct task_struct *me = current;
++	struct files_struct *cur_fds = me->files, *fds = NULL;
++
++	if (flags & ~CLOSE_RANGE_UNSHARE)
++		return -EINVAL;
+ 
+ 	if (fd > max_fd)
+ 		return -EINVAL;
+ 
+ 	rcu_read_lock();
+-	cur_max = files_fdtable(files)->max_fds;
++	cur_max = files_fdtable(cur_fds)->max_fds;
+ 	rcu_read_unlock();
+ 
+ 	/* cap to last valid index into fdtable */
+ 	cur_max--;
+ 
++	if (flags & CLOSE_RANGE_UNSHARE) {
++		int ret;
++		unsigned int max_unshare_fds = NR_OPEN_MAX;
++
++		/*
++		 * If the requested range is greater than the current maximum,
++		 * we're closing everything so only copy all file descriptors
++		 * beneath the lowest file descriptor.
++		 */
++		if (max_fd >= cur_max)
++			max_unshare_fds = fd;
++
++		ret = unshare_fd(CLONE_FILES, max_unshare_fds, &fds);
++		if (ret)
++			return ret;
++
++		/*
++		 * We used to share our file descriptor table, and have now
++		 * created a private one, make sure we're using it below.
++		 */
++		if (fds)
++			swap(cur_fds, fds);
++	}
++
+ 	max_fd = min(max_fd, cur_max);
+ 	while (fd <= max_fd) {
+ 		struct file *file;
+ 
+-		file = pick_file(files, fd++);
++		file = pick_file(cur_fds, fd++);
+ 		if (!file)
+ 			continue;
+ 
+-		filp_close(file, files);
++		filp_close(file, cur_fds);
+ 		cond_resched();
+ 	}
+ 
++	if (fds) {
++		/*
++		 * We're done closing the files we were supposed to. Time to install
++		 * the new file descriptor table and drop the old one.
++		 */
++		task_lock(me);
++		me->files = cur_fds;
++		task_unlock(me);
++		put_files_struct(fds);
++	}
++
+ 	return 0;
+ }
+ 
+diff --git a/fs/open.c b/fs/open.c
+index 16e434e11118..a87c120692b9 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -1215,10 +1215,7 @@ EXPORT_SYMBOL(sys_close);
+ SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
+ 		unsigned int, flags)
+ {
+-	if (flags)
+-		return -EINVAL;
+-
+-	return __close_range(current->files, fd, max_fd);
++	return __close_range(fd, max_fd, flags);
+ }
+ 
+ /*
+diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+index 008235491c12..e25d1e900cd7 100644
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -22,6 +22,7 @@
+  * as this is the granularity returned by copy_fdset().
+  */
+ #define NR_OPEN_DEFAULT BITS_PER_LONG
++#define NR_OPEN_MAX ~0U
+ 
+ struct fdtable {
+ 	unsigned int max_fds;
+@@ -109,7 +110,7 @@ struct files_struct *get_files_struct(struct task_struct *);
+ void put_files_struct(struct files_struct *fs);
+ void reset_files_struct(struct files_struct *);
+ int unshare_files(struct files_struct **);
+-struct files_struct *dup_fd(struct files_struct *, int *) __latent_entropy;
++struct files_struct *dup_fd(struct files_struct *, unsigned, int *) __latent_entropy;
+ void do_close_on_exec(struct files_struct *);
+ int iterate_fd(struct files_struct *, unsigned,
+ 		int (*)(const void *, struct file *, unsigned),
+@@ -121,8 +122,9 @@ extern void __fd_install(struct files_struct *files,
+ 		      unsigned int fd, struct file *file);
+ extern int __close_fd(struct files_struct *files,
+ 		      unsigned int fd);
+-extern int __close_range(struct files_struct *files, unsigned int fd,
+-			 unsigned int max_fd);
++extern int __close_range(unsigned int fd, unsigned int max_fd, unsigned int flags);
++extern int unshare_fd(unsigned long unshare_flags, unsigned int max_fds,
++		      struct files_struct **new_fdp);
+ 
+ extern struct kmem_cache *files_cachep;
+ 
+diff --git a/include/uapi/linux/close_range.h b/include/uapi/linux/close_range.h
+new file mode 100644
+index 000000000000..6928a9fdee3c
+--- /dev/null
++++ b/include/uapi/linux/close_range.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++#ifndef _UAPI_LINUX_CLOSE_RANGE_H
++#define _UAPI_LINUX_CLOSE_RANGE_H
++
++/* Unshare the file descriptor table before closing file descriptors. */
++#define CLOSE_RANGE_UNSHARE	(1U << 1)
++
++#endif /* _UAPI_LINUX_CLOSE_RANGE_H */
++
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 972c3eb795db..4ce5db966755 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1323,7 +1323,7 @@ static int copy_files(unsigned long clone_flags, struct task_struct *tsk)
+ 		goto out;
+ 	}
+ 
+-	newf = dup_fd(oldf, &error);
++	newf = dup_fd(oldf, NR_OPEN_MAX, &error);
+ 	if (!newf)
+ 		goto out;
+ 
+@@ -2491,14 +2491,15 @@ static int unshare_fs(unsigned long unshare_flags, struct fs_struct **new_fsp)
+ /*
+  * Unshare file descriptor table if it is being shared
+  */
+-static int unshare_fd(unsigned long unshare_flags, struct files_struct **new_fdp)
++int unshare_fd(unsigned long unshare_flags, unsigned int max_fds,
++	       struct files_struct **new_fdp)
+ {
+ 	struct files_struct *fd = current->files;
+ 	int error = 0;
+ 
+ 	if ((unshare_flags & CLONE_FILES) &&
+ 	    (fd && atomic_read(&fd->count) > 1)) {
+-		*new_fdp = dup_fd(fd, &error);
++		*new_fdp = dup_fd(fd, max_fds, &error);
+ 		if (!*new_fdp)
+ 			return error;
+ 	}
+@@ -2558,7 +2559,7 @@ SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
+ 	err = unshare_fs(unshare_flags, &new_fs);
+ 	if (err)
+ 		goto bad_unshare_out;
+-	err = unshare_fd(unshare_flags, &new_fd);
++	err = unshare_fd(unshare_flags, NR_OPEN_MAX, &new_fd);
+ 	if (err)
+ 		goto bad_unshare_cleanup_fs;
+ 	err = unshare_userns(unshare_flags, &new_cred);
+@@ -2642,7 +2643,7 @@ int unshare_files(struct files_struct **displaced)
+ 	struct files_struct *copy = NULL;
+ 	int error;
+ 
+-	error = unshare_fd(CLONE_FILES, &copy);
++	error = unshare_fd(CLONE_FILES, NR_OPEN_MAX, &copy);
+ 	if (error || !copy) {
+ 		*displaced = NULL;
+ 		return error;
+
+From d2622f0c58d02d2ec9be6b480027ef7805c8c37e Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Fri, 24 May 2019 11:31:44 +0200
+Subject: [PATCH] BACKPORT: arch: wire-up close_range()
+
+This wires up the close_range() syscall into all arches at once.
+
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Change-Id: Ib962b01f3a490c901b0e0f51e436df1a26887ca4
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+Cc: Jann Horn <jannh@google.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Dmitry V. Levin <ldv@altlinux.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Florian Weimer <fweimer@redhat.com>
+Cc: linux-api@vger.kernel.org
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+---
+ arch/arm/tools/syscall.tbl             | 1 +
+ arch/arm64/include/asm/unistd.h        | 2 +-
+ arch/arm64/include/asm/unistd32.h      | 2 ++
+ arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+ include/uapi/asm-generic/unistd.h      | 4 +++-
+ 6 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 98a1e28bc13b..a5c086c0958b 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -414,3 +414,4 @@
+ 397	common	statx			sys_statx
+ 424	common	pidfd_send_signal	sys_pidfd_send_signal
+ 434	common	pidfd_open		sys_pidfd_open
++436	common	close_range		sys_close_range
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index b52bd9696386..4d6928f87c8f 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -43,7 +43,7 @@
+ #define __ARM_NR_compat_cacheflush	(__ARM_NR_COMPAT_BASE+2)
+ #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE+5)
+ 
+-#define __NR_compat_syscalls		435
++#define __NR_compat_syscalls		437
+ #endif
+ 
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index b81507012f45..858e2d098869 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -821,6 +821,8 @@ __SYSCALL(__NR_statx, sys_statx)
+ __SYSCALL(__NR_pidfd_send_signal, sys_pidfd_send_signal)
+ #define __NR_pidfd_open 434
+ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
++#define __NR_close_range 436
++__SYSCALL(__NR_close_range, sys_close_range)
+ 
+ /*
+  * Please add new compat syscalls above this comment and update
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 1b6fd1fdb255..5d08e19beeb6 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -393,3 +393,4 @@
+ 384	i386	arch_prctl		sys_arch_prctl			compat_sys_arch_prctl
+ 424	i386	pidfd_send_signal	sys_pidfd_send_signal
+ 434	i386	pidfd_open		sys_pidfd_open
++436	i386	close_range		sys_close_range
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 9a1523f53bac..453545fca0ea 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -341,6 +341,7 @@
+ 332	common	statx			sys_statx
+ 424	common	pidfd_send_signal	sys_pidfd_send_signal
+ 434	common	pidfd_open		sys_pidfd_open
++436	common	close_range		sys_close_range
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 119661ff7e94..577f96983c94 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -736,9 +736,11 @@ __SYSCALL(__NR_statx,     sys_statx)
+ __SYSCALL(__NR_pidfd_send_signal, sys_pidfd_send_signal)
+ #define __NR_pidfd_open 434
+ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
++#define __NR_close_range 436
++__SYSCALL(__NR_close_range, sys_close_range)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 435
++#define __NR_syscalls 437
+ 
+ /*
+  * All syscalls below here should go away really,
+
+From 65ee5a5962348ee7a1f8cb1e9a064bd74545adbf Mon Sep 17 00:00:00 2001
+From: Giuseppe Scrivano <gscrivan@redhat.com>
+Date: Wed, 18 Nov 2020 11:47:45 +0100
+Subject: [PATCH] UPSTREAM: fs, close_range: add flag CLOSE_RANGE_CLOEXEC
+
+When the flag CLOSE_RANGE_CLOEXEC is set, close_range doesn't
+immediately close the files but it sets the close-on-exec bit.
+
+It is useful for e.g. container runtimes that usually install a
+seccomp profile "as late as possible" before execv'ing the container
+process itself.  The container runtime could either do:
+  1                                  2
+- install_seccomp_profile();       - close_range(MIN_FD, MAX_INT, 0);
+- close_range(MIN_FD, MAX_INT, 0); - install_seccomp_profile();
+- execve(...);                     - execve(...);
+
+Both alternative have some disadvantages.
+
+In the first variant the seccomp_profile cannot block the close_range
+syscall, as well as opendir/read/close/... for the fallback on older
+kernels.
+In the second variant, close_range() can be used only on the fds
+that are not going to be needed by the runtime anymore, and it must be
+potentially called multiple times to account for the different ranges
+that must be closed.
+
+Using close_range(..., ..., CLOSE_RANGE_CLOEXEC) solves these issues.
+The runtime is able to use the existing open fds, the seccomp profile
+can block close_range() and the syscalls used for its fallback.
+
+Change-Id: I1c84a733698c2853a0126cd22960ada25b229c5a
+Signed-off-by: Giuseppe Scrivano <gscrivan@redhat.com>
+Link: https://lore.kernel.org/r/20201118104746.873084-2-gscrivan@redhat.com
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c                        | 44 ++++++++++++++++++++++++--------
+ include/uapi/linux/close_range.h |  3 +++
+ 2 files changed, 37 insertions(+), 10 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index aa9bebedfe6c..9f7e8c837a38 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -665,6 +665,35 @@ int __close_fd(struct files_struct *files, unsigned fd)
+ 	return filp_close(file, files);
+ }
+ 
++static inline void __range_cloexec(struct files_struct *cur_fds,
++				   unsigned int fd, unsigned int max_fd)
++{
++	struct fdtable *fdt;
++
++	if (fd > max_fd)
++		return;
++
++	spin_lock(&cur_fds->file_lock);
++	fdt = files_fdtable(cur_fds);
++	bitmap_set(fdt->close_on_exec, fd, max_fd - fd + 1);
++	spin_unlock(&cur_fds->file_lock);
++}
++
++static inline void __range_close(struct files_struct *cur_fds, unsigned int fd,
++				 unsigned int max_fd)
++{
++	while (fd <= max_fd) {
++		struct file *file;
++
++		file = pick_file(cur_fds, fd++);
++		if (!file)
++			continue;
++
++		filp_close(file, cur_fds);
++		cond_resched();
++	}
++}
++
+ /**
+  * __close_range() - Close all file descriptors in a given range.
+  *
+@@ -680,7 +709,7 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 	struct task_struct *me = current;
+ 	struct files_struct *cur_fds = me->files, *fds = NULL;
+ 
+-	if (flags & ~CLOSE_RANGE_UNSHARE)
++	if (flags & ~(CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC))
+ 		return -EINVAL;
+ 
+ 	if (fd > max_fd)
+@@ -718,16 +747,11 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 	}
+ 
+ 	max_fd = min(max_fd, cur_max);
+-	while (fd <= max_fd) {
+-		struct file *file;
+ 
+-		file = pick_file(cur_fds, fd++);
+-		if (!file)
+-			continue;
+-
+-		filp_close(file, cur_fds);
+-		cond_resched();
+-	}
++	if (flags & CLOSE_RANGE_CLOEXEC)
++		__range_cloexec(cur_fds, fd, max_fd);
++	else
++		__range_close(cur_fds, fd, max_fd);
+ 
+ 	if (fds) {
+ 		/*
+diff --git a/include/uapi/linux/close_range.h b/include/uapi/linux/close_range.h
+index 6928a9fdee3c..2d804281554c 100644
+--- a/include/uapi/linux/close_range.h
++++ b/include/uapi/linux/close_range.h
+@@ -5,5 +5,8 @@
+ /* Unshare the file descriptor table before closing file descriptors. */
+ #define CLOSE_RANGE_UNSHARE	(1U << 1)
+ 
++/* Set the FD_CLOEXEC bit instead of closing the file descriptor. */
++#define CLOSE_RANGE_CLOEXEC	(1U << 2)
++
+ #endif /* _UAPI_LINUX_CLOSE_RANGE_H */
+ 
+
+From b08100b295f17f506524ae0ebb252d984a4aeedd Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Thu, 17 Dec 2020 22:33:03 +0100
+Subject: [PATCH] UPSTREAM: close_range: unshare all fds for
+ CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC
+
+After introducing CLOSE_RANGE_CLOEXEC syzbot reported a crash when
+CLOSE_RANGE_CLOEXEC is specified in conjunction with CLOSE_RANGE_UNSHARE.
+When CLOSE_RANGE_UNSHARE is specified the caller will receive a private
+file descriptor table in case their file descriptor table is currently
+shared.
+
+For the case where the caller has requested all file descriptors to be
+actually closed via e.g. close_range(3, ~0U, 0) the kernel knows that
+the caller does not need any of the file descriptors anymore and will
+optimize the close operation by only copying all files in the range from
+0 to 3 and no others.
+
+However, if the caller requested CLOSE_RANGE_CLOEXEC together with
+CLOSE_RANGE_UNSHARE the caller wants to still make use of the file
+descriptors so the kernel needs to copy all of them and can't optimize.
+
+The original patch didn't account for this and thus could cause oopses
+as evidenced by the syzbot report because it assumed that all fds had
+been copied. Fix this by handling the CLOSE_RANGE_CLOEXEC case.
+
+syzbot reported
+==================================================================
+BUG: KASAN: null-ptr-deref in instrument_atomic_read include/linux/instrumented.h:71 [inline]
+BUG: KASAN: null-ptr-deref in atomic64_read include/asm-generic/atomic-instrumented.h:837 [inline]
+BUG: KASAN: null-ptr-deref in atomic_long_read include/asm-generic/atomic-long.h:29 [inline]
+BUG: KASAN: null-ptr-deref in filp_close+0x22/0x170 fs/open.c:1274
+Read of size 8 at addr 0000000000000077 by task syz-executor511/8522
+
+CPU: 1 PID: 8522 Comm: syz-executor511 Not tainted 5.10.0-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:79 [inline]
+ dump_stack+0x107/0x163 lib/dump_stack.c:120
+ __kasan_report mm/kasan/report.c:549 [inline]
+ kasan_report.cold+0x5/0x37 mm/kasan/report.c:562
+ check_memory_region_inline mm/kasan/generic.c:186 [inline]
+ check_memory_region+0x13d/0x180 mm/kasan/generic.c:192
+ instrument_atomic_read include/linux/instrumented.h:71 [inline]
+ atomic64_read include/asm-generic/atomic-instrumented.h:837 [inline]
+ atomic_long_read include/asm-generic/atomic-long.h:29 [inline]
+ filp_close+0x22/0x170 fs/open.c:1274
+ close_files fs/file.c:402 [inline]
+ put_files_struct fs/file.c:417 [inline]
+ put_files_struct+0x1cc/0x350 fs/file.c:414
+ exit_files+0x12a/0x170 fs/file.c:435
+ do_exit+0xb4f/0x2a00 kernel/exit.c:818
+ do_group_exit+0x125/0x310 kernel/exit.c:920
+ get_signal+0x428/0x2100 kernel/signal.c:2792
+ arch_do_signal_or_restart+0x2a8/0x1eb0 arch/x86/kernel/signal.c:811
+ handle_signal_work kernel/entry/common.c:147 [inline]
+ exit_to_user_mode_loop kernel/entry/common.c:171 [inline]
+ exit_to_user_mode_prepare+0x124/0x200 kernel/entry/common.c:201
+ __syscall_exit_to_user_mode_work kernel/entry/common.c:291 [inline]
+ syscall_exit_to_user_mode+0x19/0x50 kernel/entry/common.c:302
+ entry_SYSCALL_64_after_hwframe+0x44/0xa9
+RIP: 0033:0x447039
+Code: Unable to access opcode bytes at RIP 0x44700f.
+RSP: 002b:00007f1b1225cdb8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+RAX: 0000000000000001 RBX: 00000000006dbc28 RCX: 0000000000447039
+RDX: 00000000000f4240 RSI: 0000000000000081 RDI: 00000000006dbc2c
+RBP: 00000000006dbc20 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dbc2c
+R13: 00007fff223b6bef R14: 00007f1b1225d9c0 R15: 00000000006dbc2c
+==================================================================
+
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
+
+Reported-and-tested-by: syzbot+96cfd2b22b3213646a93@syzkaller.appspotmail.com
+
+Tested on:
+
+commit:         10f7cddd selftests/core: add regression test for CLOSE_RAN..
+git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/brauner/linux.git vfs
+kernel config:  https://syzkaller.appspot.com/x/.config?x=5d42216b510180e3
+dashboard link: https://syzkaller.appspot.com/bug?extid=96cfd2b22b3213646a93
+compiler:       gcc (GCC) 10.1.0-syz 20200507
+
+Reported-by: syzbot+96cfd2b22b3213646a93@syzkaller.appspotmail.com
+Fixes: 582f1fb6b721 ("fs, close_range: add flag CLOSE_RANGE_CLOEXEC")
+Cc: Giuseppe Scrivano <gscrivan@redhat.com>
+Cc: linux-fsdevel@vger.kernel.org
+Link: https://lore.kernel.org/r/20201217213303.722643-1-christian.brauner@ubuntu.com
+Change-Id: I92120c3f81e2811d3a2a1a76fa60cf2e75a56f42
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 9f7e8c837a38..2b06a0d94018 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -730,8 +730,10 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 		 * If the requested range is greater than the current maximum,
+ 		 * we're closing everything so only copy all file descriptors
+ 		 * beneath the lowest file descriptor.
++		 * If the caller requested all fds to be made cloexec copy all
++		 * of the file descriptors since they still want to use them.
+ 		 */
+-		if (max_fd >= cur_max)
++		if (!(flags & CLOSE_RANGE_CLOEXEC) && (max_fd >= cur_max))
+ 			max_unshare_fds = fd;
+ 
+ 		ret = unshare_fd(CLONE_FILES, max_unshare_fds, &fds);
+
+From f0893c3dfa3b548ce24c1668f4307a9e4dd16abf Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Fri, 2 Apr 2021 10:29:36 +0200
+Subject: [PATCH] UPSTREAM: file: fix close_range() for unshare+cloexec
+
+syzbot reported a bug when putting the last reference to a tasks file
+descriptor table. Debugging this showed we didn't recalculate the
+current maximum fd number for CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC
+after we unshared the file descriptors table. So max_fd could exceed the
+current fdtable maximum causing us to set excessive bits. As a concrete
+example, let's say the user requested everything from fd 4 to ~0UL to be
+closed and their current fdtable size is 256 with their highest open fd
+being 4. With CLOSE_RANGE_UNSHARE the caller will end up with a new
+fdtable which has room for 64 file descriptors since that is the lowest
+fdtable size we accept. But now max_fd will still point to 255 and needs
+to be adjusted. Fix this by retrieving the correct maximum fd value in
+__range_cloexec().
+
+Reported-by: syzbot+283ce5a46486d6acdbaf@syzkaller.appspotmail.com
+Fixes: 582f1fb6b721 ("fs, close_range: add flag CLOSE_RANGE_CLOEXEC")
+Fixes: fec8a6a69103 ("close_range: unshare all fds for CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC")
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Giuseppe Scrivano <gscrivan@redhat.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
+Cc: stable@vger.kernel.org
+Change-Id: Ib6aeb02d2b4556ba048cd4ca8150f9d2c29abdb3
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 2b06a0d94018..d65bec6d41e2 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -665,17 +665,30 @@ int __close_fd(struct files_struct *files, unsigned fd)
+ 	return filp_close(file, files);
+ }
+ 
++/**
++ * last_fd - return last valid index into fd table
++ * @cur_fds: files struct
++ *
++ * Context: Either rcu read lock or files_lock must be held.
++ *
++ * Returns: Last valid index into fdtable.
++ */
++static inline unsigned last_fd(struct fdtable *fdt)
++{
++	return fdt->max_fds - 1;
++}
++
+ static inline void __range_cloexec(struct files_struct *cur_fds,
+ 				   unsigned int fd, unsigned int max_fd)
+ {
+ 	struct fdtable *fdt;
+ 
+-	if (fd > max_fd)
+-		return;
+-
++	/* make sure we're using the correct maximum value */
+ 	spin_lock(&cur_fds->file_lock);
+ 	fdt = files_fdtable(cur_fds);
+-	bitmap_set(fdt->close_on_exec, fd, max_fd - fd + 1);
++	max_fd = min(last_fd(fdt), max_fd);
++	if (fd <= max_fd)
++		bitmap_set(fdt->close_on_exec, fd, max_fd - fd + 1);
+ 	spin_unlock(&cur_fds->file_lock);
+ }
+ 
+
+From 33e59559fe7d3f71c46f9981eeb0420ed0cb8d36 Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Fri, 2 Apr 2021 10:38:09 +0200
+Subject: [PATCH] UPSTREAM: file: simplify logic in __close_range()
+
+It never looked too pleasant and it doesn't really buy us anything
+anymore now that CLOSE_RANGE_CLOEXEC exists and we need to retake the
+current maximum under the lock for it anyway. This also makes the logic
+easier to follow.
+
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Giuseppe Scrivano <gscrivan@redhat.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
+Change-Id: I72be5b078d7edc061318b0eda36a351e1dc01e56
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c | 31 ++++++++++++++-----------------
+ 1 file changed, 14 insertions(+), 17 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index d65bec6d41e2..28f59fc0e301 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -718,7 +718,6 @@ static inline void __range_close(struct files_struct *cur_fds, unsigned int fd,
+  */
+ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ {
+-	unsigned int cur_max;
+ 	struct task_struct *me = current;
+ 	struct files_struct *cur_fds = me->files, *fds = NULL;
+ 
+@@ -728,26 +727,26 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 	if (fd > max_fd)
+ 		return -EINVAL;
+ 
+-	rcu_read_lock();
+-	cur_max = files_fdtable(cur_fds)->max_fds;
+-	rcu_read_unlock();
+-
+-	/* cap to last valid index into fdtable */
+-	cur_max--;
+-
+ 	if (flags & CLOSE_RANGE_UNSHARE) {
+ 		int ret;
+ 		unsigned int max_unshare_fds = NR_OPEN_MAX;
+ 
+ 		/*
+-		 * If the requested range is greater than the current maximum,
+-		 * we're closing everything so only copy all file descriptors
+-		 * beneath the lowest file descriptor.
+-		 * If the caller requested all fds to be made cloexec copy all
+-		 * of the file descriptors since they still want to use them.
++		 * If the caller requested all fds to be made cloexec we always
++		 * copy all of the file descriptors since they still want to
++		 * use them.
+ 		 */
+-		if (!(flags & CLOSE_RANGE_CLOEXEC) && (max_fd >= cur_max))
+-			max_unshare_fds = fd;
++		if (!(flags & CLOSE_RANGE_CLOEXEC)) {
++			/*
++			 * If the requested range is greater than the current
++			 * maximum, we're closing everything so only copy all
++			 * file descriptors beneath the lowest file descriptor.
++			 */
++			rcu_read_lock();
++			if (max_fd >= last_fd(files_fdtable(cur_fds)))
++				max_unshare_fds = fd;
++			rcu_read_unlock();
++		}
+ 
+ 		ret = unshare_fd(CLONE_FILES, max_unshare_fds, &fds);
+ 		if (ret)
+@@ -761,8 +760,6 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 			swap(cur_fds, fds);
+ 	}
+ 
+-	max_fd = min(max_fd, cur_max);
+-
+ 	if (flags & CLOSE_RANGE_CLOEXEC)
+ 		__range_cloexec(cur_fds, fd, max_fd);
+ 	else
+
+From 1d84bc0c3d2068ac164bee2464fbe48d5ca0cd75 Mon Sep 17 00:00:00 2001
+From: Al Viro <viro@zeniv.linux.org.uk>
+Date: Tue, 26 Aug 2025 17:27:47 -0400
+Subject: [PATCH] UPSTREAM: alloc_fdtable(): change calling conventions.
+
+[ Upstream commit 1d3b4bec3ce55e0c46cdce7d0402dbd6b4af3a3d ]
+
+First of all, tell it how many slots do we want, not which slot
+is wanted.  It makes one caller (dup_fd()) more straightforward
+and doesn't harm another (expand_fdtable()).
+
+Furthermore, make it return ERR_PTR() on failure rather than
+returning NULL.  Simplifies the callers.
+
+Simplify the size calculation, while we are at it - note that we
+always have slots_wanted greater than BITS_PER_LONG.  What the
+rules boil down to is
+	* use the smallest power of two large enough to give us
+that many slots
+	* on 32bit skip 64 and 128 - the minimal capacity we want
+there is 256 slots (i.e. 1Kb fd array).
+	* on 64bit don't skip anything, the minimal capacity is
+128 - and we'll never be asked for 64 or less.  128 slots means
+1Kb fd array, again.
+	* on 128bit, if that ever happens, don't skip anything -
+we'll never be asked for 128 or less, so the fd array allocation
+will be at least 2Kb.
+
+Reviewed-by: Christian Brauner <brauner@kernel.org>
+Change-Id: Id6ae21da951bdb42fdb4361285ada3eb377f3a6b
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+Signed-off-by: Ulrich Hecht <uli@kernel.org>
+---
+ fs/file.c | 66 +++++++++++++++++++++++++++++--------------------------
+ 1 file changed, 35 insertions(+), 31 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 28f59fc0e301..eaea18064bb3 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -89,9 +89,17 @@ static void copy_fdtable(struct fdtable *nfdt, struct fdtable *ofdt)
+ 	copy_fd_bitmaps(nfdt, ofdt, ofdt->max_fds);
+ }
+ 
+-static struct fdtable * alloc_fdtable(unsigned int nr)
++/*
++ * Note how the fdtable bitmap allocations very much have to be a multiple of
++ * BITS_PER_LONG. This is not only because we walk those things in chunks of
++ * 'unsigned long' in some places, but simply because that is how the Linux
++ * kernel bitmaps are defined to work: they are not "bits in an array of bytes",
++ * they are very much "bits in an array of unsigned long".
++ */
++static struct fdtable *alloc_fdtable(unsigned int slots_wanted)
+ {
+ 	struct fdtable *fdt;
++	unsigned int nr;
+ 	void *data;
+ 
+ 	/*
+@@ -99,21 +107,32 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
+ 	 * Allocation steps are keyed to the size of the fdarray, since it
+ 	 * grows far faster than any of the other dynamic data. We try to fit
+ 	 * the fdarray into comfortable page-tuned chunks: starting at 1024B
+-	 * and growing in powers of two from there on.
++	 * and growing in powers of two from there on.  Since we called only
++	 * with slots_wanted > BITS_PER_LONG (embedded instance in files->fdtab
++	 * already gives BITS_PER_LONG slots), the above boils down to
++	 * 1.  use the smallest power of two large enough to give us that many
++	 * slots.
++	 * 2.  on 32bit skip 64 and 128 - the minimal capacity we want there is
++	 * 256 slots (i.e. 1Kb fd array).
++	 * 3.  on 64bit don't skip anything, 1Kb fd array means 128 slots there
++	 * and we are never going to be asked for 64 or less.
+ 	 */
+-	nr /= (1024 / sizeof(struct file *));
+-	nr = roundup_pow_of_two(nr + 1);
+-	nr *= (1024 / sizeof(struct file *));
++	if (IS_ENABLED(CONFIG_32BIT) && slots_wanted < 256)
++		nr = 256;
++	else
++		nr = roundup_pow_of_two(slots_wanted);
+ 	/*
+ 	 * Note that this can drive nr *below* what we had passed if sysctl_nr_open
+-	 * had been set lower between the check in expand_files() and here.  Deal
+-	 * with that in caller, it's cheaper that way.
++	 * had been set lower between the check in expand_files() and here.
+ 	 *
+ 	 * We make sure that nr remains a multiple of BITS_PER_LONG - otherwise
+ 	 * bitmaps handling below becomes unpleasant, to put it mildly...
+ 	 */
+-	if (unlikely(nr > sysctl_nr_open))
+-		nr = ((sysctl_nr_open - 1) | (BITS_PER_LONG - 1)) + 1;
++	if (unlikely(nr > sysctl_nr_open)) {
++		nr = round_down(sysctl_nr_open, BITS_PER_LONG);
++		if (nr < slots_wanted)
++			return ERR_PTR(-EMFILE);
++	}
+ 
+ 	fdt = kmalloc(sizeof(struct fdtable), GFP_KERNEL_ACCOUNT);
+ 	if (!fdt)
+@@ -142,7 +161,7 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
+ out_fdt:
+ 	kfree(fdt);
+ out:
+-	return NULL;
++	return ERR_PTR(-ENOMEM);
+ }
+ 
+ /*
+@@ -159,7 +178,7 @@ static int expand_fdtable(struct files_struct *files, unsigned int nr)
+ 	struct fdtable *new_fdt, *cur_fdt;
+ 
+ 	spin_unlock(&files->file_lock);
+-	new_fdt = alloc_fdtable(nr);
++	new_fdt = alloc_fdtable(nr + 1);
+ 
+ 	/* make sure all __fd_install() have seen resize_in_progress
+ 	 * or have finished their rcu_read_lock_sched() section.
+@@ -168,16 +187,8 @@ static int expand_fdtable(struct files_struct *files, unsigned int nr)
+ 		synchronize_sched();
+ 
+ 	spin_lock(&files->file_lock);
+-	if (!new_fdt)
+-		return -ENOMEM;
+-	/*
+-	 * extremely unlikely race - sysctl_nr_open decreased between the check in
+-	 * caller and alloc_fdtable().  Cheaper to catch it here...
+-	 */
+-	if (unlikely(new_fdt->max_fds <= nr)) {
+-		__free_fdtable(new_fdt);
+-		return -EMFILE;
+-	}
++	if (IS_ERR(new_fdt))
++		return PTR_ERR(new_fdt);
+ 	cur_fdt = files_fdtable(files);
+ 	BUG_ON(nr < cur_fdt->max_fds);
+ 	copy_fdtable(new_fdt, cur_fdt);
+@@ -324,16 +335,9 @@ struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int
+ 		if (new_fdt != &newf->fdtab)
+ 			__free_fdtable(new_fdt);
+ 
+-		new_fdt = alloc_fdtable(open_files - 1);
+-		if (!new_fdt) {
+-			*errorp = -ENOMEM;
+-			goto out_release;
+-		}
+-
+-		/* beyond sysctl_nr_open; nothing to do */
+-		if (unlikely(new_fdt->max_fds < open_files)) {
+-			__free_fdtable(new_fdt);
+-			*errorp = -EMFILE;
++		new_fdt = alloc_fdtable(open_files);
++		if (IS_ERR(new_fdt)) {
++			*errorp = PTR_ERR(new_fdt);
+ 			goto out_release;
+ 		}
+ 
+
+From b1c5d0c12244ae272e888818978dbd985c3bf505 Mon Sep 17 00:00:00 2001
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 29 Mar 2022 15:06:39 -0700
+Subject: [PATCH] UPSTREAM: fs: fd tables have to be multiples of BITS_PER_LONG
+
+[ Upstream commit 1c24a186398f59c80adb9a967486b65c1423a59d ]
+
+This has always been the rule: fdtables have several bitmaps in them,
+and as a result they have to be sized properly for bitmaps.  We walk
+those bitmaps in chunks of 'unsigned long' in serveral cases, but even
+when we don't, we use the regular kernel bitops that are defined to work
+on arrays of 'unsigned long', not on some byte array.
+
+Now, the distinction between arrays of bytes and 'unsigned long'
+normally only really ends up being noticeable on big-endian systems, but
+Fedor Pchelkin and Alexey Khoroshilov reported that copy_fd_bitmaps()
+could be called with an argument that wasn't even a multiple of
+BITS_PER_BYTE.  And then it fails to do the proper copy even on
+little-endian machines.
+
+The bug wasn't in copy_fd_bitmap(), but in sane_fdtable_size(), which
+didn't actually sanitize the fdtable size sufficiently, and never made
+sure it had the proper BITS_PER_LONG alignment.
+
+That's partly because the alignment historically came not from having to
+explicitly align things, but simply from previous fdtable sizes, and
+from count_open_files(), which counts the file descriptors by walking
+them one 'unsigned long' word at a time and thus naturally ends up doing
+sizing in the proper 'chunks of unsigned long'.
+
+But with the introduction of close_range(), we now have an external
+source of "this is how many files we want to have", and so
+sane_fdtable_size() needs to do a better job.
+
+This also adds that explicit alignment to alloc_fdtable(), although
+there it is mainly just for documentation at a source code level.  The
+arithmetic we do there to pick a reasonable fdtable size already aligns
+the result sufficiently.
+
+In fact,clang notices that the added ALIGN() in that function doesn't
+actually do anything, and does not generate any extra code for it.
+
+It turns out that gcc ends up confusing itself by combining a previous
+constant-sized shift operation with the variable-sized shift operations
+in roundup_pow_of_two().  And probably due to that doesn't notice that
+the ALIGN() is a no-op.  But that's a (tiny) gcc misfeature that doesn't
+matter.  Having the explicit alignment makes sense, and would actually
+matter on a 128-bit architecture if we ever go there.
+
+This also adds big comments above both functions about how fdtable sizes
+have to have that BITS_PER_LONG alignment.
+
+Fixes: 60997c3d45d9 ("close_range: add CLOSE_RANGE_UNSHARE")
+Reported-by: Fedor Pchelkin <aissur0002@gmail.com>
+Reported-by: Alexey Khoroshilov <khoroshilov@ispras.ru>
+Link: https://lore.kernel.org/all/20220326114009.1690-1-aissur0002@gmail.com/
+Tested-and-acked-by: Christian Brauner <brauner@kernel.org>
+Change-Id: Ib64319f20fecec1c367bf0167e1b14b47751537a
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ fs/file.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/fs/file.c b/fs/file.c
+index eaea18064bb3..6dc03cd25929 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -95,6 +95,14 @@ static void copy_fdtable(struct fdtable *nfdt, struct fdtable *ofdt)
+  * 'unsigned long' in some places, but simply because that is how the Linux
+  * kernel bitmaps are defined to work: they are not "bits in an array of bytes",
+  * they are very much "bits in an array of unsigned long".
++ *
++ * The ALIGN(nr, BITS_PER_LONG) here is for clarity: since we just multiplied
++ * by that "1024/sizeof(ptr)" before, we already know there are sufficient
++ * clear low bits. Clang seems to realize that, gcc ends up being confused.
++ *
++ * On a 128-bit machine, the ALIGN() would actually matter. In the meantime,
++ * let's consider it documentation (and maybe a test-case for gcc to improve
++ * its code generation ;)
+  */
+ static struct fdtable *alloc_fdtable(unsigned int slots_wanted)
+ {
+@@ -282,11 +290,25 @@ static unsigned int count_open_files(struct fdtable *fdt)
+ 	return i;
+ }
+ 
++/*
++ * Note that a sane fdtable size always has to be a multiple of
++ * BITS_PER_LONG, since we have bitmaps that are sized by this.
++ *
++ * 'max_fds' will normally already be properly aligned, but it
++ * turns out that in the close_range() -> __close_range() ->
++ * unshare_fd() -> dup_fd() -> sane_fdtable_size() we can end
++ * up having a 'max_fds' value that isn't already aligned.
++ *
++ * Rather than make close_range() have to worry about this,
++ * just make that BITS_PER_LONG alignment be part of a sane
++ * fdtable size. Becuase that's really what it is.
++ */
+ static unsigned int sane_fdtable_size(struct fdtable *fdt, unsigned int max_fds)
+ {
+ 	unsigned int count;
+ 
+ 	count = count_open_files(fdt);
++	max_fds = ALIGN(max_fds, BITS_PER_LONG);
+ 	if (max_fds < NR_OPEN_DEFAULT)
+ 		max_fds = NR_OPEN_DEFAULT;
+ 	return min(count, max_fds);
+
+From d711d91fb4602aa7b048c7efeaa114031ad7365e Mon Sep 17 00:00:00 2001
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 29 Mar 2022 23:29:18 -0700
+Subject: [PATCH] UPSTREAM: fs: fix fd table size alignment properly
+
+[ Upstream commit d888c83fcec75194a8a48ccd283953bdba7b2550 ]
+
+Jason Donenfeld reports that my commit 1c24a186398f ("fs: fd tables have
+to be multiples of BITS_PER_LONG") doesn't work, and the reason is an
+embarrassing brown-paper-bag bug.
+
+Yes, we want to align the number of fds to BITS_PER_LONG, and yes, the
+reason they might not be aligned is because the incoming 'max_fd'
+argument might not be aligned.
+
+But aligining the argument - while simple - will cause a "infinitely
+big" maxfd (eg NR_OPEN_MAX) to just overflow to zero.  Which most
+definitely isn't what we want either.
+
+The obvious fix was always just to do the alignment last, but I had
+moved it earlier just to make the patch smaller and the code look
+simpler.  Duh.  It certainly made _me_ look simple.
+
+Fixes: 1c24a186398f ("fs: fd tables have to be multiples of BITS_PER_LONG")
+Reported-and-tested-by: Jason A. Donenfeld <Jason@zx2c4.com>
+Cc: Fedor Pchelkin <aissur0002@gmail.com>
+Cc: Alexey Khoroshilov <khoroshilov@ispras.ru>
+Cc: Christian Brauner <brauner@kernel.org>
+Change-Id: I6d3a0c28896e8cf8cab30f60679aab785aeee193
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ fs/file.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 6dc03cd25929..9c0692f1745a 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -308,10 +308,9 @@ static unsigned int sane_fdtable_size(struct fdtable *fdt, unsigned int max_fds)
+ 	unsigned int count;
+ 
+ 	count = count_open_files(fdt);
+-	max_fds = ALIGN(max_fds, BITS_PER_LONG);
+ 	if (max_fds < NR_OPEN_DEFAULT)
+ 		max_fds = NR_OPEN_DEFAULT;
+-	return min(count, max_fds);
++	return ALIGN(min(count, max_fds), BITS_PER_LONG);
+ }
+ 
+ /*
+
+From 414a7215eb565662c32cc3ce50a6e1b1bf08e52d Mon Sep 17 00:00:00 2001
+From: Al Viro <viro@zeniv.linux.org.uk>
+Date: Fri, 16 Aug 2024 15:17:00 -0400
+Subject: [PATCH] UPSTREAM: close_range(): fix the logics in descriptor table
+ trimming
+
+commit 678379e1d4f7443b170939525d3312cfc37bf86b upstream.
+
+Cloning a descriptor table picks the size that would cover all currently
+opened files.  That's fine for clone() and unshare(), but for close_range()
+there's an additional twist - we clone before we close, and it would be
+a shame to have
+	close_range(3, ~0U, CLOSE_RANGE_UNSHARE)
+leave us with a huge descriptor table when we are not going to keep
+anything past stderr, just because some large file descriptor used to
+be open before our call has taken it out.
+
+Unfortunately, it had been dealt with in an inherently racy way -
+sane_fdtable_size() gets a "don't copy anything past that" argument
+(passed via unshare_fd() and dup_fd()), close_range() decides how much
+should be trimmed and passes that to unshare_fd().
+
+The problem is, a range that used to extend to the end of descriptor
+table back when close_range() had looked at it might very well have stuff
+grown after it by the time dup_fd() has allocated a new files_struct
+and started to figure out the capacity of fdtable to be attached to that.
+
+That leads to interesting pathological cases; at the very least it's a
+QoI issue, since unshare(CLONE_FILES) is atomic in a sense that it takes
+a snapshot of descriptor table one might have observed at some point.
+Since CLOSE_RANGE_UNSHARE close_range() is supposed to be a combination
+of unshare(CLONE_FILES) with plain close_range(), ending up with a
+weird state that would never occur with unshare(2) is confusing, to put
+it mildly.
+
+It's not hard to get rid of - all it takes is passing both ends of the
+range down to sane_fdtable_size().  There we are under ->files_lock,
+so the race is trivially avoided.
+
+So we do the following:
+	* switch close_files() from calling unshare_fd() to calling
+dup_fd().
+	* undo the calling convention change done to unshare_fd() in
+60997c3d45d9 "close_range: add CLOSE_RANGE_UNSHARE"
+	* introduce struct fd_range, pass a pointer to that to dup_fd()
+and sane_fdtable_size() instead of "trim everything past that point"
+they are currently getting.  NULL means "we are not going to be punching
+any holes"; NR_OPEN_MAX is gone.
+	* make sane_fdtable_size() use find_last_bit() instead of
+open-coding it; it's easier to follow that way.
+	* while we are at it, have dup_fd() report errors by returning
+ERR_PTR(), no need to use a separate int *errorp argument.
+
+Fixes: 60997c3d45d9 "close_range: add CLOSE_RANGE_UNSHARE"
+Cc: stable@vger.kernel.org
+Change-Id: I6782a2edf98970b6c2d662048061e28f7e57b9c9
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/file.c               | 93 +++++++++++++++--------------------------
+ include/linux/fdtable.h |  8 ++--
+ kernel/fork.c           | 30 ++++++-------
+ 3 files changed, 50 insertions(+), 81 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 9c0692f1745a..4057986895e3 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -276,59 +276,45 @@ static inline void __clear_open_fd(unsigned int fd, struct fdtable *fdt)
+ 	__clear_bit(fd / BITS_PER_LONG, fdt->full_fds_bits);
+ }
+ 
+-static unsigned int count_open_files(struct fdtable *fdt)
+-{
+-	unsigned int size = fdt->max_fds;
+-	unsigned int i;
+-
+-	/* Find the last open fd */
+-	for (i = size / BITS_PER_LONG; i > 0; ) {
+-		if (fdt->open_fds[--i])
+-			break;
+-	}
+-	i = (i + 1) * BITS_PER_LONG;
+-	return i;
+-}
+-
+ /*
+  * Note that a sane fdtable size always has to be a multiple of
+  * BITS_PER_LONG, since we have bitmaps that are sized by this.
+  *
+- * 'max_fds' will normally already be properly aligned, but it
+- * turns out that in the close_range() -> __close_range() ->
+- * unshare_fd() -> dup_fd() -> sane_fdtable_size() we can end
+- * up having a 'max_fds' value that isn't already aligned.
+- *
+- * Rather than make close_range() have to worry about this,
+- * just make that BITS_PER_LONG alignment be part of a sane
+- * fdtable size. Becuase that's really what it is.
++ * punch_hole is optional - when close_range() is asked to unshare
++ * and close, we don't need to copy descriptors in that range, so
++ * a smaller cloned descriptor table might suffice if the last
++ * currently opened descriptor falls into that range.
+  */
+-static unsigned int sane_fdtable_size(struct fdtable *fdt, unsigned int max_fds)
++static unsigned int sane_fdtable_size(struct fdtable *fdt, struct fd_range *punch_hole)
+ {
+-	unsigned int count;
+-
+-	count = count_open_files(fdt);
+-	if (max_fds < NR_OPEN_DEFAULT)
+-		max_fds = NR_OPEN_DEFAULT;
+-	return ALIGN(min(count, max_fds), BITS_PER_LONG);
++	unsigned int last = find_last_bit(fdt->open_fds, fdt->max_fds);
++
++	if (last == fdt->max_fds)
++		return NR_OPEN_DEFAULT;
++	if (punch_hole && punch_hole->to >= last && punch_hole->from <= last) {
++		last = find_last_bit(fdt->open_fds, punch_hole->from);
++		if (last == punch_hole->from)
++			return NR_OPEN_DEFAULT;
++	}
++	return ALIGN(last + 1, BITS_PER_LONG);
+ }
+ 
+ /*
+- * Allocate a new files structure and copy contents from the
+- * passed in files structure.
+- * errorp will be valid only when the returned files_struct is NULL.
++ * Allocate a new descriptor table and copy contents from the passed in
++ * instance.  Returns a pointer to cloned table on success, ERR_PTR()
++ * on failure.  For 'punch_hole' see sane_fdtable_size().
+  */
+-struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int *errorp)
++struct files_struct *dup_fd(struct files_struct *oldf, struct fd_range *punch_hole)
+ {
+ 	struct files_struct *newf;
+ 	struct file **old_fds, **new_fds;
+ 	unsigned int open_files, i;
+ 	struct fdtable *old_fdt, *new_fdt;
++	int error;
+ 
+-	*errorp = -ENOMEM;
+ 	newf = kmem_cache_alloc(files_cachep, GFP_KERNEL);
+ 	if (!newf)
+-		goto out;
++		return ERR_PTR(-ENOMEM);
+ 
+ 	atomic_set(&newf->count, 1);
+ 
+@@ -345,7 +331,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int
+ 
+ 	spin_lock(&oldf->file_lock);
+ 	old_fdt = files_fdtable(oldf);
+-	open_files = sane_fdtable_size(old_fdt, max_fds);
++	open_files = sane_fdtable_size(old_fdt, punch_hole);
+ 
+ 	/*
+ 	 * Check whether we need to allocate a larger fd array and fd set.
+@@ -358,7 +344,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int
+ 
+ 		new_fdt = alloc_fdtable(open_files);
+ 		if (IS_ERR(new_fdt)) {
+-			*errorp = PTR_ERR(new_fdt);
++			error = PTR_ERR(new_fdt);
+ 			goto out_release;
+ 		}
+ 
+@@ -369,7 +355,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int
+ 		 */
+ 		spin_lock(&oldf->file_lock);
+ 		old_fdt = files_fdtable(oldf);
+-		open_files = sane_fdtable_size(old_fdt, max_fds);
++		open_files = sane_fdtable_size(old_fdt, punch_hole);
+ 	}
+ 
+ 	copy_fd_bitmaps(new_fdt, old_fdt, open_files);
+@@ -403,8 +389,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, unsigned int max_fds, int
+ 
+ out_release:
+ 	kmem_cache_free(files_cachep, newf);
+-out:
+-	return NULL;
++	return ERR_PTR(error);
+ }
+ 
+ static struct fdtable *close_files(struct files_struct * files)
+@@ -752,37 +737,25 @@ int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+ 	if (fd > max_fd)
+ 		return -EINVAL;
+ 
+-	if (flags & CLOSE_RANGE_UNSHARE) {
+-		int ret;
+-		unsigned int max_unshare_fds = NR_OPEN_MAX;
++	if ((flags & CLOSE_RANGE_UNSHARE) && atomic_read(&cur_fds->count) > 1) {
++		struct fd_range range = {fd, max_fd}, *punch_hole = &range;
+ 
+ 		/*
+ 		 * If the caller requested all fds to be made cloexec we always
+ 		 * copy all of the file descriptors since they still want to
+ 		 * use them.
+ 		 */
+-		if (!(flags & CLOSE_RANGE_CLOEXEC)) {
+-			/*
+-			 * If the requested range is greater than the current
+-			 * maximum, we're closing everything so only copy all
+-			 * file descriptors beneath the lowest file descriptor.
+-			 */
+-			rcu_read_lock();
+-			if (max_fd >= last_fd(files_fdtable(cur_fds)))
+-				max_unshare_fds = fd;
+-			rcu_read_unlock();
+-		}
+-
+-		ret = unshare_fd(CLONE_FILES, max_unshare_fds, &fds);
+-		if (ret)
+-			return ret;
++		if (flags & CLOSE_RANGE_CLOEXEC)
++			punch_hole = NULL;
+ 
++		fds = dup_fd(cur_fds, punch_hole);
++		if (IS_ERR(fds))
++			return PTR_ERR(fds);
+ 		/*
+ 		 * We used to share our file descriptor table, and have now
+ 		 * created a private one, make sure we're using it below.
+ 		 */
+-		if (fds)
+-			swap(cur_fds, fds);
++		swap(cur_fds, fds);
+ 	}
+ 
+ 	if (flags & CLOSE_RANGE_CLOEXEC)
+diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+index e25d1e900cd7..6662e2a91472 100644
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -22,7 +22,6 @@
+  * as this is the granularity returned by copy_fdset().
+  */
+ #define NR_OPEN_DEFAULT BITS_PER_LONG
+-#define NR_OPEN_MAX ~0U
+ 
+ struct fdtable {
+ 	unsigned int max_fds;
+@@ -110,7 +109,10 @@ struct files_struct *get_files_struct(struct task_struct *);
+ void put_files_struct(struct files_struct *fs);
+ void reset_files_struct(struct files_struct *);
+ int unshare_files(struct files_struct **);
+-struct files_struct *dup_fd(struct files_struct *, unsigned, int *) __latent_entropy;
++struct fd_range {
++	unsigned int from, to;
++};
++struct files_struct *dup_fd(struct files_struct *, struct fd_range *) __latent_entropy;
+ void do_close_on_exec(struct files_struct *);
+ int iterate_fd(struct files_struct *, unsigned,
+ 		int (*)(const void *, struct file *, unsigned),
+@@ -123,8 +125,6 @@ extern void __fd_install(struct files_struct *files,
+ extern int __close_fd(struct files_struct *files,
+ 		      unsigned int fd);
+ extern int __close_range(unsigned int fd, unsigned int max_fd, unsigned int flags);
+-extern int unshare_fd(unsigned long unshare_flags, unsigned int max_fds,
+-		      struct files_struct **new_fdp);
+ 
+ extern struct kmem_cache *files_cachep;
+ 
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 4ce5db966755..f60dd783513c 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1309,28 +1309,25 @@ static int copy_fs(unsigned long clone_flags, struct task_struct *tsk)
+ static int copy_files(unsigned long clone_flags, struct task_struct *tsk)
+ {
+ 	struct files_struct *oldf, *newf;
+-	int error = 0;
+ 
+ 	/*
+ 	 * A background process may not have any files ...
+ 	 */
+ 	oldf = current->files;
+ 	if (!oldf)
+-		goto out;
++		return 0;
+ 
+ 	if (clone_flags & CLONE_FILES) {
+ 		atomic_inc(&oldf->count);
+-		goto out;
++		return 0;
+ 	}
+ 
+-	newf = dup_fd(oldf, NR_OPEN_MAX, &error);
+-	if (!newf)
+-		goto out;
++	newf = dup_fd(oldf, NULL);
++	if (IS_ERR(newf))
++		return PTR_ERR(newf);
+ 
+ 	tsk->files = newf;
+-	error = 0;
+-out:
+-	return error;
++	return 0;
+ }
+ 
+ static int copy_io(unsigned long clone_flags, struct task_struct *tsk)
+@@ -2491,17 +2488,16 @@ static int unshare_fs(unsigned long unshare_flags, struct fs_struct **new_fsp)
+ /*
+  * Unshare file descriptor table if it is being shared
+  */
+-int unshare_fd(unsigned long unshare_flags, unsigned int max_fds,
+-	       struct files_struct **new_fdp)
++static int unshare_fd(unsigned long unshare_flags, struct files_struct **new_fdp)
+ {
+ 	struct files_struct *fd = current->files;
+-	int error = 0;
+ 
+ 	if ((unshare_flags & CLONE_FILES) &&
+ 	    (fd && atomic_read(&fd->count) > 1)) {
+-		*new_fdp = dup_fd(fd, max_fds, &error);
+-		if (!*new_fdp)
+-			return error;
++		fd = dup_fd(fd, NULL);
++		if (IS_ERR(fd))
++			return PTR_ERR(fd);
++		*new_fdp = fd;
+ 	}
+ 
+ 	return 0;
+@@ -2559,7 +2555,7 @@ SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
+ 	err = unshare_fs(unshare_flags, &new_fs);
+ 	if (err)
+ 		goto bad_unshare_out;
+-	err = unshare_fd(unshare_flags, NR_OPEN_MAX, &new_fd);
++	err = unshare_fd(unshare_flags, &new_fd);
+ 	if (err)
+ 		goto bad_unshare_cleanup_fs;
+ 	err = unshare_userns(unshare_flags, &new_cred);
+@@ -2643,7 +2639,7 @@ int unshare_files(struct files_struct **displaced)
+ 	struct files_struct *copy = NULL;
+ 	int error;
+ 
+-	error = unshare_fd(CLONE_FILES, NR_OPEN_MAX, &copy);
++	error = unshare_fd(CLONE_FILES, &copy);
+ 	if (error || !copy) {
+ 		*displaced = NULL;
+ 		return error;
+
+From d94ec8a605ed2234a14ee526d9782c37fb23e929 Mon Sep 17 00:00:00 2001
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Date: Sun, 11 Mar 2018 11:34:30 +0100
+Subject: [PATCH] UPSTREAM: fs: add do_epoll_*() helpers; remove internal calls
+ to sys_epoll_*()
+
+Using the helper functions do_epoll_create() and do_epoll_wait() allows us
+to remove in-kernel calls to the related syscall functions.
+
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Change-Id: I73c8f43d7db845e0b7ec5ec00fbc575fbcb8ca5e
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ fs/eventpoll.c | 23 +++++++++++++++++------
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 88a47914102c..a11684c25a55 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1945,7 +1945,7 @@ static void clear_tfile_check_list(void)
+ /*
+  * Open an eventpoll file descriptor.
+  */
+-SYSCALL_DEFINE1(epoll_create1, int, flags)
++static int do_epoll_create(int flags)
+ {
+ 	int error, fd;
+ 	struct eventpoll *ep = NULL;
+@@ -1988,12 +1988,17 @@ SYSCALL_DEFINE1(epoll_create1, int, flags)
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE1(epoll_create1, int, flags)
++{
++	return do_epoll_create(flags);
++}
++
+ SYSCALL_DEFINE1(epoll_create, int, size)
+ {
+ 	if (size <= 0)
+ 		return -EINVAL;
+ 
+-	return sys_epoll_create1(0);
++	return do_epoll_create(0);
+ }
+ 
+ /*
+@@ -2159,8 +2164,8 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
+  * Implement the event wait interface for the eventpoll file. It is the kernel
+  * part of the user space epoll_wait(2).
+  */
+-SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
+-		int, maxevents, int, timeout)
++static int do_epoll_wait(int epfd, struct epoll_event __user *events,
++			 int maxevents, int timeout)
+ {
+ 	int error;
+ 	struct fd f;
+@@ -2201,6 +2206,12 @@ SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
++		int, maxevents, int, timeout)
++{
++	return do_epoll_wait(epfd, events, maxevents, timeout);
++}
++
+ /*
+  * Implement the event wait interface for the eventpoll file. It is the kernel
+  * part of the user space epoll_pwait(2).
+@@ -2225,7 +2236,7 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	error = sys_epoll_wait(epfd, events, maxevents, timeout);
++	error = do_epoll_wait(epfd, events, maxevents, timeout);
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+@@ -2270,7 +2281,7 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	err = sys_epoll_wait(epfd, events, maxevents, timeout);
++	err = do_epoll_wait(epfd, events, maxevents, timeout);
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+
+From 7f2cf27bd5774f95791ab7ea8325c1e91198260e Mon Sep 17 00:00:00 2001
+From: Willem de Bruijn <willemb@google.com>
+Date: Fri, 18 Dec 2020 14:05:35 -0800
+Subject: [PATCH] BACKPORT: epoll: convert internal api to timespec64
+
+Patch series "add epoll_pwait2 syscall", v4.
+
+Enable nanosecond timeouts for epoll.
+
+Analogous to pselect and ppoll, introduce an epoll_wait syscall
+variant that takes a struct timespec instead of int timeout.
+
+This patch (of 4):
+
+Make epoll more consistent with select/poll: pass along the timeout as
+timespec64 pointer.
+
+In anticipation of additional changes affecting all three polling
+mechanisms:
+
+- add epoll_pwait2 syscall with timespec semantics,
+  and share poll_select_set_timeout implementation.
+- compute slack before conversion to absolute time,
+  to save one ktime_get_ts64 call.
+
+Link: https://lkml.kernel.org/r/20201121144401.3727659-1-willemdebruijn.kernel@gmail.com
+Link: https://lkml.kernel.org/r/20201121144401.3727659-2-willemdebruijn.kernel@gmail.com
+Change-Id: Id5851ad620849d202d18a99351a98b8bc3b6820a
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ fs/eventpoll.c | 55 ++++++++++++++++++++++++++++++++------------------
+ 1 file changed, 35 insertions(+), 20 deletions(-)
+
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index a11684c25a55..5d7e0e38ffa5 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1724,15 +1724,25 @@ static int ep_send_events(struct eventpoll *ep,
+ 	return ep_scan_ready_list(ep, ep_send_events_proc, &esed, 0, false);
+ }
+ 
+-static inline struct timespec64 ep_set_mstimeout(long ms)
++static struct timespec64 *ep_timeout_to_timespec(struct timespec64 *to, long ms)
+ {
+-	struct timespec64 now, ts = {
+-		.tv_sec = ms / MSEC_PER_SEC,
+-		.tv_nsec = NSEC_PER_MSEC * (ms % MSEC_PER_SEC),
+-	};
++	struct timespec64 now;
++
++	if (ms < 0)
++		return NULL;
++
++	if (!ms) {
++		to->tv_sec = 0;
++		to->tv_nsec = 0;
++		return to;
++	}
++
++	to->tv_sec = ms / MSEC_PER_SEC;
++	to->tv_nsec = NSEC_PER_MSEC * (ms % MSEC_PER_SEC);
+ 
+ 	ktime_get_ts64(&now);
+-	return timespec64_add_safe(now, ts);
++	*to = timespec64_add_safe(now, *to);
++	return to;
+ }
+ 
+ /**
+@@ -1744,8 +1754,8 @@ static inline struct timespec64 ep_set_mstimeout(long ms)
+  *          stored.
+  * @maxevents: Size (in terms of number of events) of the caller event buffer.
+  * @timeout: Maximum timeout for the ready events fetch operation, in
+- *           milliseconds. If the @timeout is zero, the function will not block,
+- *           while if the @timeout is less than zero, the function will block
++ *           timespec. If the timeout is zero, the function will not block,
++ *           while if the @timeout ptr is NULL, the function will block
+  *           until at least one event has been retrieved (or an error
+  *           occurred).
+  *
+@@ -1753,7 +1763,7 @@ static inline struct timespec64 ep_set_mstimeout(long ms)
+  *          error code, in case of error.
+  */
+ static int ep_poll(struct eventpoll *ep, struct epoll_event __user *events,
+-		   int maxevents, long timeout)
++		   int maxevents, struct timespec64 *timeout)
+ {
+ 	int res = 0, eavail, timed_out = 0;
+ 	unsigned long flags;
+@@ -1761,13 +1771,11 @@ static int ep_poll(struct eventpoll *ep, struct epoll_event __user *events,
+ 	wait_queue_entry_t wait;
+ 	ktime_t expires, *to = NULL;
+ 
+-	if (timeout > 0) {
+-		struct timespec64 end_time = ep_set_mstimeout(timeout);
+-
+-		slack = select_estimate_accuracy(&end_time);
++	if (timeout && (timeout->tv_sec | timeout->tv_nsec)) {
++		slack = select_estimate_accuracy(timeout);
+ 		to = &expires;
+-		*to = timespec64_to_ktime(end_time);
+-	} else if (timeout == 0) {
++		*to = timespec64_to_ktime(*timeout);
++	} else if (timeout) {
+ 		/*
+ 		 * Avoid the unnecessary trip to the wait queue loop, if the
+ 		 * caller specified a non blocking operation.
+@@ -2165,7 +2173,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
+  * part of the user space epoll_wait(2).
+  */
+ static int do_epoll_wait(int epfd, struct epoll_event __user *events,
+-			 int maxevents, int timeout)
++			 int maxevents, struct timespec64 *to)
+ {
+ 	int error;
+ 	struct fd f;
+@@ -2199,7 +2207,7 @@ static int do_epoll_wait(int epfd, struct epoll_event __user *events,
+ 	ep = f.file->private_data;
+ 
+ 	/* Time to fish for events ... */
+-	error = ep_poll(ep, events, maxevents, timeout);
++	error = ep_poll(ep, events, maxevents, to);
+ 
+ error_fput:
+ 	fdput(f);
+@@ -2209,7 +2217,10 @@ static int do_epoll_wait(int epfd, struct epoll_event __user *events,
+ SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
+ 		int, maxevents, int, timeout)
+ {
+-	return do_epoll_wait(epfd, events, maxevents, timeout);
++	struct timespec64 to;
++
++	return do_epoll_wait(epfd, events, maxevents,
++			     ep_timeout_to_timespec(&to, timeout));
+ }
+ 
+ /*
+@@ -2220,6 +2231,7 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+ 		int, maxevents, int, timeout, const sigset_t __user *, sigmask,
+ 		size_t, sigsetsize)
+ {
++	struct timespec64 to;
+ 	int error;
+ 	sigset_t ksigmask, sigsaved;
+ 
+@@ -2236,7 +2248,8 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	error = do_epoll_wait(epfd, events, maxevents, timeout);
++	error = do_epoll_wait(epfd, events, maxevents,
++			      ep_timeout_to_timespec(&to, timeout));
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+@@ -2263,6 +2276,7 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+ 			const compat_sigset_t __user *, sigmask,
+ 			compat_size_t, sigsetsize)
+ {
++	struct timespec64 to;
+ 	long err;
+ 	compat_sigset_t csigmask;
+ 	sigset_t ksigmask, sigsaved;
+@@ -2281,7 +2295,8 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	err = do_epoll_wait(epfd, events, maxevents, timeout);
++	err = do_epoll_wait(epfd, events, maxevents,
++			    ep_timeout_to_timespec(&to, timeout));
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+
+From fbe7b1540e736c7f0b49e4f46b08c17348193fc1 Mon Sep 17 00:00:00 2001
+From: Willem de Bruijn <willemb@google.com>
+Date: Fri, 18 Dec 2020 14:05:38 -0800
+Subject: [PATCH] UPSTREAM: epoll: add syscall epoll_pwait2
+
+Add syscall epoll_pwait2, an epoll_wait variant with nsec resolution that
+replaces int timeout with struct timespec.  It is equivalent otherwise.
+
+    int epoll_pwait2(int fd, struct epoll_event *events,
+                     int maxevents,
+                     const struct timespec *timeout,
+                     const sigset_t *sigset);
+
+The underlying hrtimer is already programmed with nsec resolution.
+pselect and ppoll also set nsec resolution timeout with timespec.
+
+The sigset_t in epoll_pwait has a compat variant. epoll_pwait2 needs
+the same.
+
+For timespec, only support this new interface on 2038 aware platforms
+that define __kernel_timespec_t. So no CONFIG_COMPAT_32BIT_TIME.
+
+Link: https://lkml.kernel.org/r/20201121144401.3727659-3-willemdebruijn.kernel@gmail.com
+Change-Id: I8cb4e756aacb4bee7cbe1c2cb5320a59e07626f8
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ fs/eventpoll.c | 87 ++++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 73 insertions(+), 14 deletions(-)
+
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 5d7e0e38ffa5..c8fe533466ba 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -2227,11 +2227,10 @@ SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
+  * Implement the event wait interface for the eventpoll file. It is the kernel
+  * part of the user space epoll_pwait(2).
+  */
+-SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+-		int, maxevents, int, timeout, const sigset_t __user *, sigmask,
+-		size_t, sigsetsize)
++static int do_epoll_pwait(int epfd, struct epoll_event __user *events,
++			  int maxevents, struct timespec64 *to,
++			  const sigset_t __user *sigmask, size_t sigsetsize)
+ {
+-	struct timespec64 to;
+ 	int error;
+ 	sigset_t ksigmask, sigsaved;
+ 
+@@ -2248,8 +2247,7 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	error = do_epoll_wait(epfd, events, maxevents,
+-			      ep_timeout_to_timespec(&to, timeout));
++	error = do_epoll_wait(epfd, events, maxevents, to);
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+@@ -2269,14 +2267,41 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
+ 	return error;
+ }
+ 
+-#ifdef CONFIG_COMPAT
+-COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+-			struct epoll_event __user *, events,
+-			int, maxevents, int, timeout,
+-			const compat_sigset_t __user *, sigmask,
+-			compat_size_t, sigsetsize)
++SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
++		int, maxevents, int, timeout, const sigset_t __user *, sigmask,
++		size_t, sigsetsize)
+ {
+ 	struct timespec64 to;
++
++	return do_epoll_pwait(epfd, events, maxevents,
++			      ep_timeout_to_timespec(&to, timeout),
++			      sigmask, sigsetsize);
++}
++
++SYSCALL_DEFINE6(epoll_pwait2, int, epfd, struct epoll_event __user *, events,
++		int, maxevents, const struct __kernel_timespec __user *, timeout,
++		const sigset_t __user *, sigmask, size_t, sigsetsize)
++{
++	struct timespec64 ts, *to = NULL;
++
++	if (timeout) {
++		if (get_timespec64(&ts, timeout))
++			return -EFAULT;
++		to = &ts;
++		if (poll_select_set_timeout(to, ts.tv_sec, ts.tv_nsec))
++			return -EINVAL;
++	}
++
++	return do_epoll_pwait(epfd, events, maxevents, to,
++			      sigmask, sigsetsize);
++}
++
++#ifdef CONFIG_COMPAT
++static int do_compat_epoll_pwait(int epfd, struct epoll_event __user *events,
++				 int maxevents, struct timespec64 *timeout,
++				 const compat_sigset_t __user *sigmask,
++				 compat_size_t sigsetsize)
++{
+ 	long err;
+ 	compat_sigset_t csigmask;
+ 	sigset_t ksigmask, sigsaved;
+@@ -2295,8 +2320,7 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+ 		set_current_blocked(&ksigmask);
+ 	}
+ 
+-	err = do_epoll_wait(epfd, events, maxevents,
+-			    ep_timeout_to_timespec(&to, timeout));
++	err = do_epoll_wait(epfd, events, maxevents, timeout);
+ 
+ 	/*
+ 	 * If we changed the signal mask, we need to restore the original one.
+@@ -2315,6 +2339,41 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
+ 
+ 	return err;
+ }
++
++COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
++		       struct epoll_event __user *, events,
++		       int, maxevents, int, timeout,
++		       const compat_sigset_t __user *, sigmask,
++		       compat_size_t, sigsetsize)
++{
++	struct timespec64 to;
++
++	return do_compat_epoll_pwait(epfd, events, maxevents,
++				     ep_timeout_to_timespec(&to, timeout),
++				     sigmask, sigsetsize);
++}
++
++COMPAT_SYSCALL_DEFINE6(epoll_pwait2, int, epfd,
++		       struct epoll_event __user *, events,
++		       int, maxevents,
++		       const struct __kernel_timespec __user *, timeout,
++		       const compat_sigset_t __user *, sigmask,
++		       compat_size_t, sigsetsize)
++{
++	struct timespec64 ts, *to = NULL;
++
++	if (timeout) {
++		if (get_timespec64(&ts, timeout))
++			return -EFAULT;
++		to = &ts;
++		if (poll_select_set_timeout(to, ts.tv_sec, ts.tv_nsec))
++			return -EINVAL;
++	}
++
++	return do_compat_epoll_pwait(epfd, events, maxevents, to,
++				     sigmask, sigsetsize);
++}
++
+ #endif
+ 
+ static int __init eventpoll_init(void)
+
+From 84d2bab4af77187b78affb2e9a66e04e42d7d194 Mon Sep 17 00:00:00 2001
+From: Willem de Bruijn <willemb@google.com>
+Date: Fri, 18 Dec 2020 14:05:41 -0800
+Subject: [PATCH] BACKPORT: epoll: wire up syscall epoll_pwait2
+
+Split off from prev patch in the series that implements the syscall.
+
+Link: https://lkml.kernel.org/r/20201121144401.3727659-4-willemdebruijn.kernel@gmail.com
+Change-Id: I48dfae6f721b24ebc53de603e393289954a95908
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ arch/arm/tools/syscall.tbl             | 1 +
+ arch/arm64/include/asm/unistd.h        | 2 +-
+ arch/arm64/include/asm/unistd32.h      | 2 ++
+ arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+ include/linux/compat.h                 | 6 ++++++
+ include/linux/syscalls.h               | 5 +++++
+ include/uapi/asm-generic/unistd.h      | 4 +++-
+ kernel/sys_ni.c                        | 2 ++
+ 9 files changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index a5c086c0958b..56ad0d91cabb 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -415,3 +415,4 @@
+ 424	common	pidfd_send_signal	sys_pidfd_send_signal
+ 434	common	pidfd_open		sys_pidfd_open
+ 436	common	close_range		sys_close_range
++441	common	epoll_pwait2		sys_epoll_pwait2
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 4d6928f87c8f..f88b648ddce3 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -43,7 +43,7 @@
+ #define __ARM_NR_compat_cacheflush	(__ARM_NR_COMPAT_BASE+2)
+ #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE+5)
+ 
+-#define __NR_compat_syscalls		437
++#define __NR_compat_syscalls		442
+ #endif
+ 
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index 858e2d098869..e70d05e74273 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -823,6 +823,8 @@ __SYSCALL(__NR_pidfd_send_signal, sys_pidfd_send_signal)
+ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
+ #define __NR_close_range 436
+ __SYSCALL(__NR_close_range, sys_close_range)
++#define __NR_epoll_pwait2 441
++__SYSCALL(__NR_epoll_pwait2, sys_epoll_pwait2)
+ 
+ /*
+  * Please add new compat syscalls above this comment and update
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 5d08e19beeb6..950cc82f6dcf 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -394,3 +394,4 @@
+ 424	i386	pidfd_send_signal	sys_pidfd_send_signal
+ 434	i386	pidfd_open		sys_pidfd_open
+ 436	i386	close_range		sys_close_range
++441	i386	epoll_pwait2		sys_epoll_pwait2		__ia32_sys_epoll_pwait2
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 453545fca0ea..3afb15056950 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -342,6 +342,7 @@
+ 424	common	pidfd_send_signal	sys_pidfd_send_signal
+ 434	common	pidfd_open		sys_pidfd_open
+ 436	common	close_range		sys_close_range
++441	common	epoll_pwait2		sys_epoll_pwait2
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 3380faebda3f..747309cfa234 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -483,6 +483,12 @@ asmlinkage long compat_sys_epoll_pwait(int epfd,
+ 			int maxevents, int timeout,
+ 			const compat_sigset_t __user *sigmask,
+ 			compat_size_t sigsetsize);
++asmlinkage long compat_sys_epoll_pwait2(int epfd,
++			struct epoll_event __user *events,
++			int maxevents,
++			const struct __kernel_timespec __user *timeout,
++			const compat_sigset_t __user *sigmask,
++			compat_size_t sigsetsize);
+ 
+ asmlinkage long compat_sys_utime(const char __user *filename,
+ 				 struct compat_utimbuf __user *t);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index b06e82a929c3..21ffed4ab8be 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -678,6 +678,11 @@ asmlinkage long sys_epoll_pwait(int epfd, struct epoll_event __user *events,
+ 				int maxevents, int timeout,
+ 				const sigset_t __user *sigmask,
+ 				size_t sigsetsize);
++asmlinkage long sys_epoll_pwait2(int epfd, struct epoll_event __user *events,
++				 int maxevents,
++				 const struct __kernel_timespec __user *timeout,
++				 const sigset_t __user *sigmask,
++				 size_t sigsetsize);
+ asmlinkage long sys_gethostname(char __user *name, int len);
+ asmlinkage long sys_sethostname(char __user *name, int len);
+ asmlinkage long sys_setdomainname(char __user *name, int len);
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 577f96983c94..395b9947eb03 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -738,9 +738,11 @@ __SYSCALL(__NR_pidfd_send_signal, sys_pidfd_send_signal)
+ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
+ #define __NR_close_range 436
+ __SYSCALL(__NR_close_range, sys_close_range)
++#define __NR_epoll_pwait2 441
++__SC_COMP(__NR_epoll_pwait2, sys_epoll_pwait2, compat_sys_epoll_pwait2)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 437
++#define __NR_syscalls 442
+ 
+ /*
+  * All syscalls below here should go away really,
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index b5189762d275..265790ee7780 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -71,6 +71,8 @@ cond_syscall(sys_epoll_ctl);
+ cond_syscall(sys_epoll_wait);
+ cond_syscall(sys_epoll_pwait);
+ cond_syscall(compat_sys_epoll_pwait);
++cond_syscall(sys_epoll_pwait2);
++cond_syscall(compat_sys_epoll_pwait2);
+ cond_syscall(sys_semget);
+ cond_syscall(sys_semop);
+ cond_syscall(sys_semtimedop);
+
+From 2cc94e5253bcfa34cdaccdd08939b4d56aacff71 Mon Sep 17 00:00:00 2001
+From: Heiko Carstens <hca@linux.ibm.com>
+Date: Sun, 20 Dec 2020 10:58:30 +0100
+Subject: [PATCH] BACKPORT: epoll: fix compat syscall wire up of epoll_pwait2
+
+Commit b0a0c2615f6f ("epoll: wire up syscall epoll_pwait2") wired up
+the 64 bit syscall instead of the compat variant in a couple of places.
+
+Fixes: b0a0c2615f6f ("epoll: wire up syscall epoll_pwait2")
+Change-Id: Ida2267e953240c036d64bc61177ee72bb20f35a3
+Signed-off-by: Heiko Carstens <hca@linux.ibm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Willem de Bruijn <willemb@google.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ arch/arm64/include/asm/unistd32.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index e70d05e74273..b07d96ea7cb2 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -824,7 +824,7 @@ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
+ #define __NR_close_range 436
+ __SYSCALL(__NR_close_range, sys_close_range)
+ #define __NR_epoll_pwait2 441
+-__SYSCALL(__NR_epoll_pwait2, sys_epoll_pwait2)
++__SYSCALL(__NR_epoll_pwait2, compat_sys_epoll_pwait2)
+ 
+ /*
+  * Please add new compat syscalls above this comment and update
+
+From bd2566e8a8fb39327ae062c42e3a5800f333d8ff Mon Sep 17 00:00:00 2001
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Date: Fri, 2 Apr 2021 10:32:21 +0200
+Subject: [PATCH] BACKPORT: file: let pick_file() tell caller it's done
+
+Let pick_file() report back that the fd it was passed exceeded the
+maximum fd in that fdtable. This allows us to simplify the caller of
+this helper because it doesn't need to care anymore whether the passed
+in max_fd is excessive. It can rely on pick_file() telling it that it's
+past the last valid fd.
+
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Giuseppe Scrivano <gscrivan@redhat.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
+Change-Id: I0d037a47612154c68b4452d8aa26d5cebcf56107
+Signed-off-by: Christian Brauner <christian.brauner@ubuntu.com>
+---
+ fs/file.c | 33 ++++++++++++++++++++++++++-------
+ 1 file changed, 26 insertions(+), 7 deletions(-)
+
+diff --git a/fs/file.c b/fs/file.c
+index 4057986895e3..72a081633838 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -639,19 +639,33 @@ void fd_install(unsigned int fd, struct file *file)
+ 
+ EXPORT_SYMBOL(fd_install);
+ 
++/**
++ * pick_file - return file associatd with fd
++ * @files: file struct to retrieve file from
++ * @fd: file descriptor to retrieve file for
++ *
++ * If this functions returns an EINVAL error pointer the fd was beyond the
++ * current maximum number of file descriptors for that fdtable.
++ *
++ * Returns: The file associated with @fd, on error returns an error pointer.
++ */
+ static struct file *pick_file(struct files_struct *files, unsigned fd)
+ {
+-	struct file *file = NULL;
++	struct file *file;
+ 	struct fdtable *fdt;
+ 
+ 	spin_lock(&files->file_lock);
+ 	fdt = files_fdtable(files);
+-	if (fd >= fdt->max_fds)
++	if (fd >= fdt->max_fds) {
++		file = ERR_PTR(-EINVAL);
+ 		goto out_unlock;
++	}
+ 	fd = array_index_nospec(fd, fdt->max_fds);
+ 	file = fdt->fd[fd];
+-	if (!file)
++	if (!file) {
++		file = ERR_PTR(-EBADF);
+ 		goto out_unlock;
++	}
+ 	rcu_assign_pointer(fdt->fd[fd], NULL);
+ 	__clear_close_on_exec(fd, fdt);
+ 	__put_unused_fd(files, fd);
+@@ -669,7 +683,7 @@ int __close_fd(struct files_struct *files, unsigned fd)
+ 	struct file *file;
+ 
+ 	file = pick_file(files, fd);
+-	if (!file)
++	if (IS_ERR(file))
+ 		return -EBADF;
+ 
+ 	return filp_close(file, files);
+@@ -709,11 +723,16 @@ static inline void __range_close(struct files_struct *cur_fds, unsigned int fd,
+ 		struct file *file;
+ 
+ 		file = pick_file(cur_fds, fd++);
+-		if (!file)
++		if (!IS_ERR(file)) {
++			/* found a valid file to close */
++			filp_close(file, cur_fds);
++			cond_resched();
+ 			continue;
++		}
+ 
+-		filp_close(file, cur_fds);
+-		cond_resched();
++		/* beyond the last fd in that table */
++		if (PTR_ERR(file) == -EINVAL)
++			return;
+ 	}
+ }
+ 
+
+From 59fa169e96a8a8688871ca75ddbdd05852ca8ab0 Mon Sep 17 00:00:00 2001
+From: Matthew Garrett <mjg59@google.com>
+Date: Mon, 8 Jan 2018 13:36:19 -0800
+Subject: [PATCH] UPSTREAM: security: Add a cred_getsecid hook
+
+For IMA purposes, we want to be able to obtain the prepared secid in the
+bprm structure before the credentials are committed. Add a cred_getsecid
+hook that makes this possible.
+
+Change-Id: If73fb5c6d4474cb6dde7ca8056f8b4c399c861fa
+Signed-off-by: Matthew Garrett <mjg59@google.com>
+Acked-by: Paul Moore <paul@paul-moore.com>
+Cc: Paul Moore <paul@paul-moore.com>
+Cc: Stephen Smalley <sds@tycho.nsa.gov>
+Cc: Casey Schaufler <casey@schaufler-ca.com>
+Signed-off-by: Mimi Zohar <zohar@linux.vnet.ibm.com>
+---
+ include/linux/lsm_hooks.h  |  6 ++++++
+ include/linux/security.h   |  1 +
+ security/security.c        |  7 +++++++
+ security/selinux/hooks.c   |  6 ++++++
+ security/smack/smack_lsm.c | 18 ++++++++++++++++++
+ 5 files changed, 38 insertions(+)
+
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index ecd852b557a0..47c3faa1fc48 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -560,6 +560,10 @@
+  *	@new points to the new credentials.
+  *	@old points to the original credentials.
+  *	Transfer data from original creds to new creds
++ * @cred_getsecid:
++ *	Retrieve the security identifier of the cred structure @c
++ *	@c contains the credentials, secid will be placed into @secid.
++ *	In case of failure, @secid will be set to zero.
+  * @kernel_act_as:
+  *	Set the credentials for a kernel service to act as (subjective context).
+  *	@new points to the credentials to be modified.
+@@ -1551,6 +1555,7 @@ union security_list_options {
+ 	int (*cred_prepare)(struct cred *new, const struct cred *old,
+ 				gfp_t gfp);
+ 	void (*cred_transfer)(struct cred *new, const struct cred *old);
++	void (*cred_getsecid)(const struct cred *c, u32 *secid);
+ 	int (*kernel_act_as)(struct cred *new, u32 secid);
+ 	int (*kernel_create_files_as)(struct cred *new, struct inode *inode);
+ 	int (*kernel_module_request)(char *kmod_name);
+@@ -1843,6 +1848,7 @@ struct security_hook_heads {
+ 	struct list_head cred_free;
+ 	struct list_head cred_prepare;
+ 	struct list_head cred_transfer;
++	struct list_head cred_getsecid;
+ 	struct list_head kernel_act_as;
+ 	struct list_head kernel_create_files_as;
+ 	struct list_head kernel_read_file;
+diff --git a/include/linux/security.h b/include/linux/security.h
+index cfd5b0db5a18..a6b34ec4f764 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -329,6 +329,7 @@ int security_cred_alloc_blank(struct cred *cred, gfp_t gfp);
+ void security_cred_free(struct cred *cred);
+ int security_prepare_creds(struct cred *new, const struct cred *old, gfp_t gfp);
+ void security_transfer_creds(struct cred *new, const struct cred *old);
++void security_cred_getsecid(const struct cred *c, u32 *secid);
+ int security_kernel_act_as(struct cred *new, u32 secid);
+ int security_kernel_create_files_as(struct cred *new, struct inode *inode);
+ int security_kernel_module_request(char *kmod_name);
+diff --git a/security/security.c b/security/security.c
+index bf6d9be75d1d..a7c55cb589e9 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -1029,6 +1029,13 @@ void security_transfer_creds(struct cred *new, const struct cred *old)
+ 	call_void_hook(cred_transfer, new, old);
+ }
+ 
++void security_cred_getsecid(const struct cred *c, u32 *secid)
++{
++	*secid = 0;
++	call_void_hook(cred_getsecid, c, secid);
++}
++EXPORT_SYMBOL(security_cred_getsecid);
++
+ int security_kernel_act_as(struct cred *new, u32 secid)
+ {
+ 	return call_int_hook(kernel_act_as, 0, new, secid);
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index d5c014b4f049..6048490ba93d 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -4016,6 +4016,11 @@ static void selinux_cred_transfer(struct cred *new, const struct cred *old)
+ 	*tsec = *old_tsec;
+ }
+ 
++static void selinux_cred_getsecid(const struct cred *c, u32 *secid)
++{
++	*secid = cred_sid(c);
++}
++
+ /*
+  * set the security data for a kernel service
+  * - all the creation contexts are set to unlabelled
+@@ -6822,6 +6827,7 @@ static struct security_hook_list selinux_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(cred_free, selinux_cred_free),
+ 	LSM_HOOK_INIT(cred_prepare, selinux_cred_prepare),
+ 	LSM_HOOK_INIT(cred_transfer, selinux_cred_transfer),
++	LSM_HOOK_INIT(cred_getsecid, selinux_cred_getsecid),
+ 	LSM_HOOK_INIT(kernel_act_as, selinux_kernel_act_as),
+ 	LSM_HOOK_INIT(kernel_create_files_as, selinux_kernel_create_files_as),
+ 	LSM_HOOK_INIT(kernel_module_request, selinux_kernel_module_request),
+diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
+index 33095c32fa19..e199e8494282 100644
+--- a/security/smack/smack_lsm.c
++++ b/security/smack/smack_lsm.c
+@@ -2051,6 +2051,23 @@ static void smack_cred_transfer(struct cred *new, const struct cred *old)
+ 	/* cbs copy rule list */
+ }
+ 
++/**
++ * smack_cred_getsecid - get the secid corresponding to a creds structure
++ * @c: the object creds
++ * @secid: where to put the result
++ *
++ * Sets the secid to contain a u32 version of the smack label.
++ */
++static void smack_cred_getsecid(const struct cred *c, u32 *secid)
++{
++	struct smack_known *skp;
++
++	rcu_read_lock();
++	skp = smk_of_task(c->security);
++	*secid = skp->smk_secid;
++	rcu_read_unlock();
++}
++
+ /**
+  * smack_kernel_act_as - Set the subjective context in a set of credentials
+  * @new: points to the set of credentials to be modified.
+@@ -4686,6 +4703,7 @@ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
+ 	LSM_HOOK_INIT(cred_free, smack_cred_free),
+ 	LSM_HOOK_INIT(cred_prepare, smack_cred_prepare),
+ 	LSM_HOOK_INIT(cred_transfer, smack_cred_transfer),
++	LSM_HOOK_INIT(cred_getsecid, smack_cred_getsecid),
+ 	LSM_HOOK_INIT(kernel_act_as, smack_kernel_act_as),
+ 	LSM_HOOK_INIT(kernel_create_files_as, smack_kernel_create_files_as),
+ 	LSM_HOOK_INIT(task_setpgid, smack_task_setpgid),
+
+From 06906ab788325cf3fbc157632729cbb34f95340c Mon Sep 17 00:00:00 2001
+From: Todd Kjos <tkjos@google.com>
+Date: Tue, 12 Oct 2021 09:56:14 -0700
+Subject: [PATCH] UPSTREAM: binder: use cred instead of task for getsecid
+
+commit 4d5b5539742d2554591751b4248b0204d20dcc9d upstream.
+
+Use the 'struct cred' saved at binder_open() to lookup
+the security ID via security_cred_getsecid(). This
+ensures that the security context that opened binder
+is the one used to generate the secctx.
+
+Cc: stable@vger.kernel.org # 5.4+
+Fixes: ec74136ded79 ("binder: create node flag to request sender's security context")
+Signed-off-by: Todd Kjos <tkjos@google.com>
+Suggested-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+Reported-by: kernel test robot <lkp@intel.com>
+Acked-by: Casey Schaufler <casey@schaufler-ca.com>
+Signed-off-by: Paul Moore <paul@paul-moore.com>
+Change-Id: Ia7b59804a0bdbd51191bbcca556414840307c623
+Bug: 200688826
+Signed-off-by: Todd Kjos <tkjos@google.com>
+---
+ drivers/android/binder.c | 2 +-
+ include/linux/security.h | 5 +++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/android/binder.c b/drivers/android/binder.c
+index fa3affb7f94f..f023c11f3b4c 100644
+--- a/drivers/android/binder.c
++++ b/drivers/android/binder.c
+@@ -3205,7 +3205,7 @@ static void binder_transaction(struct binder_proc *proc,
+ 		u32 secid;
+ 		size_t added_size;
+ 
+-		security_task_getsecid(proc->tsk, &secid);
++		security_cred_getsecid(proc->cred, &secid);
+ 		ret = security_secid_to_secctx(secid, &secctx, &secctx_sz);
+ 		if (ret) {
+ 			return_error = BR_FAILED_REPLY;
+diff --git a/include/linux/security.h b/include/linux/security.h
+index a6b34ec4f764..db67de2d0bd2 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -918,6 +918,11 @@ static inline void security_transfer_creds(struct cred *new,
+ {
+ }
+ 
++static inline void security_cred_getsecid(const struct cred *c, u32 *secid)
++{
++	*secid = 0;
++}
++
+ static inline int security_kernel_act_as(struct cred *cred, u32 secid)
+ {
+ 	return 0;
+
+From b3bd5598c5c11286dbfab12c129e29e214a1c121 Mon Sep 17 00:00:00 2001
+From: Hyunwoo Kim <v4bel@theori.io>
+Date: Tue, 22 Oct 2024 09:32:56 +0200
+Subject: [PATCH] UPSTREAM: vsock/virtio: Initialization of the dangling
+ pointer occurring in vsk->trans
+
+commit 6ca575374dd9a507cdd16dfa0e78c2e9e20bd05f upstream.
+
+During loopback communication, a dangling pointer can be created in
+vsk->trans, potentially leading to a Use-After-Free condition.  This
+issue is resolved by initializing vsk->trans to NULL.
+
+Bug: 378870958
+Cc: stable <stable@kernel.org>
+Fixes: 06a8fc78367d ("VSOCK: Introduce virtio_vsock_common.ko")
+Signed-off-by: Hyunwoo Kim <v4bel@theori.io>
+Signed-off-by: Wongi Lee <qwerty@theori.io>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-Id: <2024102245-strive-crib-c8d3@gregkh>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+(cherry picked from commit b110196fec44fe966952004bd426967c2a8fd358)
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: I5eb7b5ccf7f0d96644cc4313548c0114e8836149
+---
+ net/vmw_vsock/virtio_transport_common.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/net/vmw_vsock/virtio_transport_common.c b/net/vmw_vsock/virtio_transport_common.c
+index 49921077ce93..71ea991bab71 100644
+--- a/net/vmw_vsock/virtio_transport_common.c
++++ b/net/vmw_vsock/virtio_transport_common.c
+@@ -650,6 +650,7 @@ void virtio_transport_destruct(struct vsock_sock *vsk)
+ 	struct virtio_vsock_sock *vvs = vsk->trans;
+ 
+ 	kfree(vvs);
++	vsk->trans = NULL;
+ }
+ EXPORT_SYMBOL_GPL(virtio_transport_destruct);
+ 
+
+From 78253f5d48dcf0482dab7db99fc5513ed317e347 Mon Sep 17 00:00:00 2001
+From: Dharmendra Tiwari <quic_dhartiwa@quicinc.com>
+Date: Tue, 3 Sep 2024 23:06:17 -0700
+Subject: [PATCH] qcacld-3.0: Correcting the TSInfo structure size according to
+ the Spec
+
+According to spec the TSinfo size should be 4 bytes.
+
+To fix this issue,TSInfo size is increased to 4bytes aligning with the
+current standard.
+
+CRs-Fixed: 3910625
+Change-Id: I7979fa84af0295d21d4afe1b876af494a5b8fed8
+---
+ .../staging/qcacld-3.0/core/mac/src/cfg/cfgUtil/dot11f.frms   | 2 +-
+ drivers/staging/qcacld-3.0/core/mac/src/include/dot11f.h      | 4 ++--
+ .../qcacld-3.0/core/mac/src/sys/legacy/src/utils/src/dot11f.c | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/staging/qcacld-3.0/core/mac/src/cfg/cfgUtil/dot11f.frms b/drivers/staging/qcacld-3.0/core/mac/src/cfg/cfgUtil/dot11f.frms
+index ed3381df616f..cb1faf5623fb 100644
+--- a/drivers/staging/qcacld-3.0/core/mac/src/cfg/cfgUtil/dot11f.frms
++++ b/drivers/staging/qcacld-3.0/core/mac/src/cfg/cfgUtil/dot11f.frms
+@@ -367,7 +367,7 @@ FF SMPowerModeSet (1)				//7.3.1.25
+      }
+ }
+ 
+-FF TSInfo (3)                             // 7.3.2.30
++FF TSInfo (4)                             // 7.3.2.30
+ {
+     {
+         traffic_type:    1;
+diff --git a/drivers/staging/qcacld-3.0/core/mac/src/include/dot11f.h b/drivers/staging/qcacld-3.0/core/mac/src/include/dot11f.h
+index 507f905e17b7..247f261d8cc3 100644
+--- a/drivers/staging/qcacld-3.0/core/mac/src/include/dot11f.h
++++ b/drivers/staging/qcacld-3.0/core/mac/src/include/dot11f.h
+@@ -26,7 +26,7 @@
+  *
+  *
+  * This file was automatically generated by 'framesc'
+- * Wed Sep 29 13:23:21 2021 from the following file(s):
++ * Tue Sep  3 23:04:38 2024 from the following file(s):
+  *
+  * dot11f.frms
+  *
+@@ -441,7 +441,7 @@ typedef struct sDot11fFfTSInfo {
+ 	uint32_t          unused:15;
+ } tDot11fFfTSInfo;
+ 
+-#define DOT11F_FF_TSINFO_LEN (3)
++#define DOT11F_FF_TSINFO_LEN (4)
+ 
+ void dot11f_unpack_ff_ts_info(tpAniSirGlobal, uint8_t *, tDot11fFfTSInfo *);
+ 
+diff --git a/drivers/staging/qcacld-3.0/core/mac/src/sys/legacy/src/utils/src/dot11f.c b/drivers/staging/qcacld-3.0/core/mac/src/sys/legacy/src/utils/src/dot11f.c
+index 503fc06344ba..04141282c10b 100644
+--- a/drivers/staging/qcacld-3.0/core/mac/src/sys/legacy/src/utils/src/dot11f.c
++++ b/drivers/staging/qcacld-3.0/core/mac/src/sys/legacy/src/utils/src/dot11f.c
+@@ -24,7 +24,7 @@
+  *
+  *
+  * This file was automatically generated by 'framesc'
+- * Wed Sep 29 13:23:21 2021 from the following file(s):
++ * Tue Sep  3 23:04:38 2024 from the following file(s):
+  *
+  * dot11f.frms
+  *
+@@ -16338,7 +16338,7 @@ uint32_t dot11f_get_packed_del_ts_size(tpAniSirGlobal pCtx,
+ 	tDot11fDelTS *pFrm, uint32_t *pnNeeded)
+ {
+ 	uint32_t status = 0;
+-	*pnNeeded = 7;
++	*pnNeeded = 8;
+ 	status = get_packed_size_core(pCtx, (uint8_t *)pFrm, pnNeeded,
+ 				      IES_DelTS);
+ 	return status;
+
+From 25d92bdd393e6cc987a77b9207c3188687f8c82b Mon Sep 17 00:00:00 2001
+From: Gao Wang <quic_gaowang@quicinc.com>
+Date: Thu, 12 Dec 2024 16:32:48 +0800
+Subject: [PATCH] msm: npu: Fix use after free issue
+
+There is possibility that network will be used after free.
+This change is to fix this issue.
+
+Change-Id: I2368532df4fc4e75e8d8f2f259a989b5af5f9679
+Signed-off-by: Gao Wang <quic_gaowang@quicinc.com>
+---
+ drivers/media/platform/msm/npu/npu_dev.c    |  3 +--
+ drivers/media/platform/msm/npu/npu_mgr.c    | 21 +++++++++++++++++++++
+ drivers/media/platform/msm/npu/npu_mgr.h    |  2 ++
+ drivers/media/platform/msm/npu_v2/npu_mgr.c | 15 +++++++++++++++
+ drivers/media/platform/msm/npu_v2/npu_mgr.h |  1 +
+ 5 files changed, 40 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/msm/npu/npu_dev.c b/drivers/media/platform/msm/npu/npu_dev.c
+index e7472d04c40c..875b39c8a64a 100644
+--- a/drivers/media/platform/msm/npu/npu_dev.c
++++ b/drivers/media/platform/msm/npu/npu_dev.c
+@@ -1,4 +1,5 @@
+ /* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
++ * Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 and
+@@ -1562,8 +1563,6 @@ static int npu_set_fw_state(struct npu_client *client, uint32_t enable)
+ 	int rc = 0;
+ 
+ 	if (host_ctx->network_num > 0) {
+-		pr_err("Need to unload network first\n");
+-		mutex_unlock(&npu_dev->dev_lock);
+ 		return -EINVAL;
+ 	}
+ 
+diff --git a/drivers/media/platform/msm/npu/npu_mgr.c b/drivers/media/platform/msm/npu/npu_mgr.c
+index df0619ac46b8..edd2298ce638 100644
+--- a/drivers/media/platform/msm/npu/npu_mgr.c
++++ b/drivers/media/platform/msm/npu/npu_mgr.c
+@@ -1586,6 +1586,13 @@ int32_t npu_host_unload_network(struct npu_client *client,
+ 		return -EINVAL;
+ 	}
+ 
++	if (network->is_executing) {
++		pr_err("network is in execution\n");
++		network_put(network);
++		mutex_unlock(&host_ctx->lock);
++		return -EINVAL;
++	}
++
+ 	if (network->fw_error) {
+ 		pr_err("fw in error state, skip unload network in fw\n");
+ 		goto free_network;
+@@ -1826,12 +1833,24 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 	if (atomic_inc_return(&host_ctx->network_execute_cnt) == 1)
+ 		npu_notify_cdsprm_cxlimit_activity(npu_dev, true);
+ 
++	if (network->is_unloading) {
++		pr_err("network is unloading\n");
++		ret = -EINVAL;
++		goto exec_v2_done;
++	}
++
+ 	if (!network->is_active) {
+ 		pr_err("network is not active\n");
+ 		ret = -EINVAL;
+ 		goto exec_v2_done;
+ 	}
+ 
++	if (network->is_executing) {
++		pr_err("network is already in execution\n");
++		ret = -EINVAL;
++		goto exec_v2_done;
++	}
++
+ 	if (network->fw_error) {
+ 		pr_err("fw is in error state\n");
+ 		ret = -EIO;
+@@ -1849,6 +1868,7 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 		goto exec_v2_done;
+ 	}
+ 
++	network->is_executing = true;
+ 	for (i = 0; i < num_patch_params; i++) {
+ 		exec_packet->patch_params[i].id = patch_buf_info[i].buf_id;
+ 		pr_debug("%d: patch_id: %x\n", i,
+@@ -1930,6 +1950,7 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 
+ free_exec_packet:
+ 	kfree(exec_packet);
++	network->is_executing = false;
+ exec_v2_done:
+ 	network_put(network);
+ 	mutex_unlock(&host_ctx->lock);
+diff --git a/drivers/media/platform/msm/npu/npu_mgr.h b/drivers/media/platform/msm/npu/npu_mgr.h
+index 44b04d3e7714..f95140575c60 100644
+--- a/drivers/media/platform/msm/npu/npu_mgr.h
++++ b/drivers/media/platform/msm/npu/npu_mgr.h
+@@ -1,4 +1,5 @@
+ /* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
++ * Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 and
+@@ -60,6 +61,7 @@ struct npu_network {
+ 	bool is_valid;
+ 	bool is_active;
+ 	bool is_unloading;
++	bool is_executing;
+ 	bool fw_error;
+ 	bool cmd_pending;
+ 	bool cmd_async;
+diff --git a/drivers/media/platform/msm/npu_v2/npu_mgr.c b/drivers/media/platform/msm/npu_v2/npu_mgr.c
+index 40ee896dae96..fc90ad9b1ee7 100644
+--- a/drivers/media/platform/msm/npu_v2/npu_mgr.c
++++ b/drivers/media/platform/msm/npu_v2/npu_mgr.c
+@@ -2526,6 +2526,13 @@ int32_t npu_host_unload_network(struct npu_client *client,
+ 		return -EINVAL;
+ 	}
+ 
++	if (network->is_executing) {
++		NPU_ERR("network is in execution\n");
++		network_put(network);
++		mutex_unlock(&host_ctx->lock);
++		return -EINVAL;
++	}
++
+ 	if (network->fw_error) {
+ 		NPU_ERR("fw in error state, skip unload network in fw\n");
+ 		goto free_network;
+@@ -2679,6 +2686,12 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 		goto exec_v2_done;
+ 	}
+ 
++	if (network->is_executing) {
++		NPU_ERR("network is already in execution\n");
++		ret = -EINVAL;
++		goto exec_v2_done;
++	}
++
+ 	if (network->fw_error) {
+ 		NPU_ERR("fw is in error state\n");
+ 		ret = -EIO;
+@@ -2702,6 +2715,7 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 		goto exec_v2_done;
+ 	}
+ 
++	network->is_executing = true;
+ 	for (i = 0; i < num_patch_params; i++) {
+ 		exec_packet->patch_params[i].id = patch_buf_info[i].buf_id;
+ 		NPU_DBG("%d: patch_id: %x\n", i,
+@@ -2811,6 +2825,7 @@ int32_t npu_host_exec_network_v2(struct npu_client *client,
+ 	npu_free_network_cmd(host_ctx, exec_cmd);
+ free_exec_packet:
+ 	kfree(exec_packet);
++	network->is_executing = false;
+ exec_v2_done:
+ 	network_put(network);
+ 	mutex_unlock(&host_ctx->lock);
+diff --git a/drivers/media/platform/msm/npu_v2/npu_mgr.h b/drivers/media/platform/msm/npu_v2/npu_mgr.h
+index f1b5d41541c4..129f4105d2b7 100644
+--- a/drivers/media/platform/msm/npu_v2/npu_mgr.h
++++ b/drivers/media/platform/msm/npu_v2/npu_mgr.h
+@@ -91,6 +91,7 @@ struct npu_network {
+ 	atomic_t ref_cnt;
+ 	bool is_valid;
+ 	bool is_active;
++	bool is_executing;
+ 	bool is_unloading;
+ 	bool fw_error;
+ 	struct npu_client *client;
+
+From 38a7adca5a1a6eabc0e1482b5d6954f702fb0ec3 Mon Sep 17 00:00:00 2001
+From: Vikash Garodia <quic_vgarodia@quicinc.com>
+Date: Tue, 5 Nov 2024 14:24:56 +0530
+Subject: [PATCH] FROMGIT: media: venus: hfi: add check to handle incorrect
+ queue size
+
+qsize represents size of shared queued between driver and video
+firmware. Firmware can modify this value to an invalid large value. In
+such situation, empty_space will be bigger than the space actually
+available. Since new_wr_idx is not checked, so the following code will
+result in an OOB write.
+...
+qsize = qhdr->q_size
+
+if (wr_idx >= rd_idx)
+ empty_space = qsize - (wr_idx - rd_idx)
+....
+if (new_wr_idx < qsize) {
+ memcpy(wr_ptr, packet, dwords << 2) --> OOB write
+
+Add check to ensure qsize is within the allocated size while
+reading and writing packets into the queue.
+
+Cc: stable@vger.kernel.org
+Fixes: d96d3f30c0f2 ("[media] media: venus: hfi: add Venus HFI files")
+Reviewed-by: Bryan O'Donoghue <bryan.odonoghue@linaro.org>
+CRs-Fixed: 3935673
+Change-Id: Ifb907d4a4c82f853081492e06e68180476367ed5
+Git-commit: 69baf245b23e20efda0079238b27fc63ecf13de1
+Git-repo: https://gitlab.freedesktop.org/linux-media/media-committers.git
+Signed-off-by: Vikash Garodia <quic_vgarodia@quicinc.com>
+---
+ drivers/media/platform/qcom/venus/hfi_venus.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/media/platform/qcom/venus/hfi_venus.c b/drivers/media/platform/qcom/venus/hfi_venus.c
+index 4ee6cea936fa..ce16da1480ac 100644
+--- a/drivers/media/platform/qcom/venus/hfi_venus.c
++++ b/drivers/media/platform/qcom/venus/hfi_venus.c
+@@ -202,6 +202,9 @@ static int venus_write_queue(struct venus_hfi_device *hdev,
+ 	/* ensure rd/wr indices's are read from memory */
+ 	rmb();
+ 
++	if (qsize > IFACEQ_QUEUE_SIZE / 4)
++		return -EINVAL;
++
+ 	if (wr_idx >= rd_idx)
+ 		empty_space = qsize - (wr_idx - rd_idx);
+ 	else
+@@ -270,6 +273,9 @@ static int venus_read_queue(struct venus_hfi_device *hdev,
+ 	wr_idx = qhdr->write_idx;
+ 	qsize = qhdr->q_size;
+ 
++	if (qsize > IFACEQ_QUEUE_SIZE / 4)
++		return -EINVAL;
++
+ 	/* make sure data is valid before using it */
+ 	rmb();
+ 
+
+From 58134a379da0b940907e6f457b003c1e2444c353 Mon Sep 17 00:00:00 2001
+From: Vikash Garodia <quic_vgarodia@quicinc.com>
+Date: Tue, 5 Nov 2024 14:24:57 +0530
+Subject: [PATCH] FROMGIT: media: venus: hfi: add a check to handle OOB in sfr
+ region
+
+sfr->buf_size is in shared memory and can be modified by malicious user.
+OOB write is possible when the size is made higher than actual sfr data
+buffer. Cap the size to allocated size for such cases.
+
+Cc: stable@vger.kernel.org
+Fixes: d96d3f30c0f2 ("[media] media: venus: hfi: add Venus HFI files")
+Reviewed-by: Bryan O'Donoghue <bryan.odonoghue@linaro.org>
+CRs-Fixed: 3947576
+Change-Id: I483a5feff3dfa35dae8f444e57601d2d1d85246f
+Git-commit: f4b211714bcc70effa60c34d9fa613d182e3ef1e
+Git-repo: https://gitlab.freedesktop.org/linux-media/media-committers.git
+Signed-off-by: Vikash Garodia <quic_vgarodia@quicinc.com>
+---
+ drivers/media/platform/qcom/venus/hfi_venus.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/venus/hfi_venus.c b/drivers/media/platform/qcom/venus/hfi_venus.c
+index ce16da1480ac..9dcf49672229 100644
+--- a/drivers/media/platform/qcom/venus/hfi_venus.c
++++ b/drivers/media/platform/qcom/venus/hfi_venus.c
+@@ -964,18 +964,26 @@ static void venus_sfr_print(struct venus_hfi_device *hdev)
+ {
+ 	struct device *dev = hdev->core->dev;
+ 	struct hfi_sfr *sfr = hdev->sfr.kva;
++	u32 size;
+ 	void *p;
+ 
+ 	if (!sfr)
+ 		return;
+ 
+-	p = memchr(sfr->data, '\0', sfr->buf_size);
++	size = sfr->buf_size;
++	if (!size)
++		return;
++
++	if (size > ALIGNED_SFR_SIZE)
++		size = ALIGNED_SFR_SIZE;
++
++	p = memchr(sfr->data, '\0', size);
+ 	/*
+ 	 * SFR isn't guaranteed to be NULL terminated since SYS_ERROR indicates
+ 	 * that Venus is in the process of crashing.
+ 	 */
+ 	if (!p)
+-		sfr->data[sfr->buf_size - 1] = '\0';
++		sfr->data[size - 1] = '\0';
+ 
+ 	dev_err_ratelimited(dev, "SFR message from FW: %s\n", sfr->data);
+ }
+
+From 78441c47084e1355e40c4a66f16692ca8dcdd0d9 Mon Sep 17 00:00:00 2001
+From: Kirill Tkhai <ktkhai@virtuozzo.com>
+Date: Wed, 14 Mar 2018 22:17:20 +0300
+Subject: [PATCH] UPSTREAM: net: Add rtnl_lock_killable()
+
+rtnl_lock() is widely used mutex in kernel. Some of kernel code
+does memory allocations under it. In case of memory deficit this
+may invoke OOM killer, but the problem is a killed task can't
+exit if it's waiting for the mutex. This may be a reason of deadlock
+and panic.
+
+This patch adds a new primitive, which responds on SIGKILL, and
+it allows to use it in the places, where we don't want to sleep
+forever.
+
+Change-Id: I1f834e01a89b200aa0850c8f0fdf426c6ab8638a
+Signed-off-by: Kirill Tkhai <ktkhai@virtuozzo.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ include/linux/rtnetlink.h | 1 +
+ net/core/rtnetlink.c      | 6 ++++++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/include/linux/rtnetlink.h b/include/linux/rtnetlink.h
+index ff3dd2ec44b4..227eb19cc768 100644
+--- a/include/linux/rtnetlink.h
++++ b/include/linux/rtnetlink.h
+@@ -30,6 +30,7 @@ extern void rtnl_lock(void);
+ extern void rtnl_unlock(void);
+ extern int rtnl_trylock(void);
+ extern int rtnl_is_locked(void);
++extern int rtnl_lock_killable(void);
+ 
+ extern wait_queue_head_t netdev_unregistering_wq;
+ extern struct mutex net_mutex;
+diff --git a/net/core/rtnetlink.c b/net/core/rtnetlink.c
+index 46c0eae20d96..95c44d96b84c 100644
+--- a/net/core/rtnetlink.c
++++ b/net/core/rtnetlink.c
+@@ -73,6 +73,12 @@ void rtnl_lock(void)
+ }
+ EXPORT_SYMBOL(rtnl_lock);
+ 
++int rtnl_lock_killable(void)
++{
++	return mutex_lock_killable(&rtnl_mutex);
++}
++EXPORT_SYMBOL(rtnl_lock_killable);
++
+ static struct sk_buff *defer_kfree_skb_list;
+ void rtnl_kfree_skbs(struct sk_buff *head, struct sk_buff *tail)
+ {
+
+From 60892bd7ee5c78ed504bc286d5970cc5ed32d3f6 Mon Sep 17 00:00:00 2001
+From: Vlad Buslov <vladbu@mellanox.com>
+Date: Mon, 24 Sep 2018 19:22:49 +0300
+Subject: [PATCH] UPSTREAM: net: core: netlink: add helper refcount dec and
+ lock function
+
+Rtnl lock is encapsulated in netlink and cannot be accessed by other
+modules directly. This means that reference counted objects that rely on
+rtnl lock cannot use it with refcounter helper function that atomically
+releases decrements reference and obtains mutex.
+
+This patch implements simple wrapper function around refcount_dec_and_lock
+that obtains rtnl lock if reference counter value reached 0.
+
+Change-Id: I526173ad18fe45c2aaa78049f8afedaaa3dad811
+Signed-off-by: Vlad Buslov <vladbu@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ include/linux/rtnetlink.h | 2 ++
+ net/core/rtnetlink.c      | 6 ++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/include/linux/rtnetlink.h b/include/linux/rtnetlink.h
+index 227eb19cc768..7d1cb8afad10 100644
+--- a/include/linux/rtnetlink.h
++++ b/include/linux/rtnetlink.h
+@@ -6,6 +6,7 @@
+ #include <linux/mutex.h>
+ #include <linux/netdevice.h>
+ #include <linux/wait.h>
++#include <linux/refcount.h>
+ #include <uapi/linux/rtnetlink.h>
+ 
+ extern int rtnetlink_send(struct sk_buff *skb, struct net *net, u32 pid, u32 group, int echo);
+@@ -31,6 +32,7 @@ extern void rtnl_unlock(void);
+ extern int rtnl_trylock(void);
+ extern int rtnl_is_locked(void);
+ extern int rtnl_lock_killable(void);
++extern bool refcount_dec_and_rtnl_lock(refcount_t *r);
+ 
+ extern wait_queue_head_t netdev_unregistering_wq;
+ extern struct mutex net_mutex;
+diff --git a/net/core/rtnetlink.c b/net/core/rtnetlink.c
+index 95c44d96b84c..450f255fbb38 100644
+--- a/net/core/rtnetlink.c
++++ b/net/core/rtnetlink.c
+@@ -125,6 +125,12 @@ int rtnl_is_locked(void)
+ }
+ EXPORT_SYMBOL(rtnl_is_locked);
+ 
++bool refcount_dec_and_rtnl_lock(refcount_t *r)
++{
++	return refcount_dec_and_mutex_lock(r, &rtnl_mutex);
++}
++EXPORT_SYMBOL(refcount_dec_and_rtnl_lock);
++
+ #ifdef CONFIG_PROVE_LOCKING
+ bool lockdep_rtnl_is_held(void)
+ {
+
+From 4ebc0b008ba559764697f50773671005bcad2b6a Mon Sep 17 00:00:00 2001
+From: Vlad Buslov <vladbu@mellanox.com>
+Date: Mon, 24 Sep 2018 19:22:50 +0300
+Subject: [PATCH] BACKPORT: net: sched: rename qdisc_destroy() to qdisc_put()
+
+Current implementation of qdisc_destroy() decrements Qdisc reference
+counter and only actually destroy Qdisc if reference counter value reached
+zero. Rename qdisc_destroy() to qdisc_put() in order for it to better
+describe the way in which this function currently implemented and used.
+
+Extract code that deallocates Qdisc into new private qdisc_destroy()
+function. It is intended to be shared between regular qdisc_put() and its
+unlocked version that is introduced in next patch in this series.
+
+Change-Id: I510444bb0d1823832e47cde74830007e55646a09
+Signed-off-by: Vlad Buslov <vladbu@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ include/net/sch_generic.h |  2 +-
+ net/sched/sch_api.c       |  6 +++---
+ net/sched/sch_drr.c       |  4 ++--
+ net/sched/sch_fifo.c      |  2 +-
+ net/sched/sch_generic.c   | 23 ++++++++++++++---------
+ net/sched/sch_hfsc.c      |  2 +-
+ net/sched/sch_htb.c       |  4 ++--
+ net/sched/sch_mq.c        |  4 ++--
+ net/sched/sch_mqprio.c    |  4 ++--
+ net/sched/sch_multiq.c    |  6 +++---
+ net/sched/sch_netem.c     |  2 +-
+ net/sched/sch_prio.c      |  6 +++---
+ net/sched/sch_qfq.c       |  4 ++--
+ net/sched/sch_red.c       |  4 ++--
+ net/sched/sch_sfb.c       |  4 ++--
+ net/sched/sch_tbf.c       |  4 ++--
+ 16 files changed, 43 insertions(+), 38 deletions(-)
+
+diff --git a/include/net/sch_generic.h b/include/net/sch_generic.h
+index 6b43c92a0af8..5c82d6f5beea 100644
+--- a/include/net/sch_generic.h
++++ b/include/net/sch_generic.h
+@@ -436,7 +436,7 @@ void dev_deactivate_many(struct list_head *head);
+ struct Qdisc *dev_graft_qdisc(struct netdev_queue *dev_queue,
+ 			      struct Qdisc *qdisc);
+ void qdisc_reset(struct Qdisc *qdisc);
+-void qdisc_destroy(struct Qdisc *qdisc);
++void qdisc_put(struct Qdisc *qdisc);
+ void qdisc_tree_reduce_backlog(struct Qdisc *qdisc, unsigned int n,
+ 			       unsigned int len);
+ struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,
+diff --git a/net/sched/sch_api.c b/net/sched/sch_api.c
+index 0069de848e90..c7679d549975 100644
+--- a/net/sched/sch_api.c
++++ b/net/sched/sch_api.c
+@@ -883,7 +883,7 @@ static void notify_and_destroy(struct net *net, struct sk_buff *skb,
+ 		qdisc_notify(net, skb, n, clid, old, new);
+ 
+ 	if (old)
+-		qdisc_destroy(old);
++		qdisc_put(old);
+ }
+ 
+ /* Graft qdisc "new" to class "classid" of qdisc "parent" or
+@@ -933,7 +933,7 @@ static int qdisc_graft(struct net_device *dev, struct Qdisc *parent,
+ 				qdisc_refcount_inc(new);
+ 
+ 			if (!ingress)
+-				qdisc_destroy(old);
++				qdisc_put(old);
+ 		}
+ 
+ skip:
+@@ -1486,7 +1486,7 @@ static int tc_modify_qdisc(struct sk_buff *skb, struct nlmsghdr *n,
+ 	err = qdisc_graft(dev, p, skb, n, clid, q, NULL);
+ 	if (err) {
+ 		if (q)
+-			qdisc_destroy(q);
++			qdisc_put(q);
+ 		return err;
+ 	}
+ 
+diff --git a/net/sched/sch_drr.c b/net/sched/sch_drr.c
+index 2d0e8d4bdc29..3afa0a35b5ce 100644
+--- a/net/sched/sch_drr.c
++++ b/net/sched/sch_drr.c
+@@ -125,7 +125,7 @@ static int drr_change_class(struct Qdisc *sch, u32 classid, u32 parentid,
+ 					    qdisc_root_sleeping_running(sch),
+ 					    tca[TCA_RATE]);
+ 		if (err) {
+-			qdisc_destroy(cl->qdisc);
++			qdisc_put(cl->qdisc);
+ 			kfree(cl);
+ 			return err;
+ 		}
+@@ -144,7 +144,7 @@ static int drr_change_class(struct Qdisc *sch, u32 classid, u32 parentid,
+ static void drr_destroy_class(struct Qdisc *sch, struct drr_class *cl)
+ {
+ 	gen_kill_estimator(&cl->rate_est);
+-	qdisc_destroy(cl->qdisc);
++	qdisc_put(cl->qdisc);
+ 	kfree(cl);
+ }
+ 
+diff --git a/net/sched/sch_fifo.c b/net/sched/sch_fifo.c
+index 8b7110cbcce4..b6a06d241339 100644
+--- a/net/sched/sch_fifo.c
++++ b/net/sched/sch_fifo.c
+@@ -177,7 +177,7 @@ struct Qdisc *fifo_create_dflt(struct Qdisc *sch, struct Qdisc_ops *ops,
+ 	if (q) {
+ 		err = fifo_set_limit(q, limit);
+ 		if (err < 0) {
+-			qdisc_destroy(q);
++			qdisc_put(q);
+ 			q = NULL;
+ 		}
+ 	}
+diff --git a/net/sched/sch_generic.c b/net/sched/sch_generic.c
+index 4a76ceeca6fd..03be527e50cc 100644
+--- a/net/sched/sch_generic.c
++++ b/net/sched/sch_generic.c
+@@ -664,7 +664,7 @@ struct Qdisc *qdisc_create_dflt(struct netdev_queue *dev_queue,
+ 	if (!ops->init || ops->init(sch, NULL) == 0)
+ 		return sch;
+ 
+-	qdisc_destroy(sch);
++	qdisc_put(sch);
+ 	return NULL;
+ }
+ EXPORT_SYMBOL(qdisc_create_dflt);
+@@ -702,7 +702,7 @@ static void qdisc_rcu_free(struct rcu_head *head)
+ 	kfree((char *) qdisc - qdisc->padded);
+ }
+ 
+-void qdisc_destroy(struct Qdisc *qdisc)
++static void qdisc_destroy(struct Qdisc *qdisc)
+ {
+ 	const struct Qdisc_ops *ops;
+ 
+@@ -710,10 +710,6 @@ void qdisc_destroy(struct Qdisc *qdisc)
+ 		return;
+ 	ops = qdisc->ops;
+ 
+-	if (qdisc->flags & TCQ_F_BUILTIN ||
+-	    !refcount_dec_and_test(&qdisc->refcnt))
+-		return;
+-
+ #ifdef CONFIG_NET_SCHED
+ 	qdisc_hash_del(qdisc);
+ 
+@@ -736,7 +732,16 @@ void qdisc_destroy(struct Qdisc *qdisc)
+ 	 */
+ 	call_rcu(&qdisc->rcu_head, qdisc_rcu_free);
+ }
+-EXPORT_SYMBOL(qdisc_destroy);
++
++void qdisc_put(struct Qdisc *qdisc)
++{
++	if (qdisc->flags & TCQ_F_BUILTIN ||
++	    !refcount_dec_and_test(&qdisc->refcnt))
++		return;
++
++	qdisc_destroy(qdisc);
++}
++EXPORT_SYMBOL(qdisc_put);
+ 
+ /* Attach toplevel qdisc to device queue. */
+ struct Qdisc *dev_graft_qdisc(struct netdev_queue *dev_queue,
+@@ -989,7 +994,7 @@ static void shutdown_scheduler_queue(struct net_device *dev,
+ 		rcu_assign_pointer(dev_queue->qdisc, qdisc_default);
+ 		dev_queue->qdisc_sleeping = qdisc_default;
+ 
+-		qdisc_destroy(qdisc);
++		qdisc_put(qdisc);
+ 	}
+ }
+ 
+@@ -998,7 +1003,7 @@ void dev_shutdown(struct net_device *dev)
+ 	netdev_for_each_tx_queue(dev, shutdown_scheduler_queue, &noop_qdisc);
+ 	if (dev_ingress_queue(dev))
+ 		shutdown_scheduler_queue(dev, dev_ingress_queue(dev), &noop_qdisc);
+-	qdisc_destroy(dev->qdisc);
++	qdisc_put(dev->qdisc);
+ 	dev->qdisc = &noop_qdisc;
+ 
+ 	WARN_ON(timer_pending(&dev->watchdog_timer));
+diff --git a/net/sched/sch_hfsc.c b/net/sched/sch_hfsc.c
+index 3a43abe4d9c4..613d4c14341a 100644
+--- a/net/sched/sch_hfsc.c
++++ b/net/sched/sch_hfsc.c
+@@ -1093,7 +1093,7 @@ hfsc_destroy_class(struct Qdisc *sch, struct hfsc_class *cl)
+ 	struct hfsc_sched *q = qdisc_priv(sch);
+ 
+ 	tcf_block_put(cl->block);
+-	qdisc_destroy(cl->qdisc);
++	qdisc_put(cl->qdisc);
+ 	gen_kill_estimator(&cl->rate_est);
+ 	if (cl != &q->root)
+ 		kfree(cl);
+diff --git a/net/sched/sch_htb.c b/net/sched/sch_htb.c
+index 7e148376ba52..ff744743f3f3 100644
+--- a/net/sched/sch_htb.c
++++ b/net/sched/sch_htb.c
+@@ -1229,7 +1229,7 @@ static void htb_destroy_class(struct Qdisc *sch, struct htb_class *cl)
+ {
+ 	if (!cl->level) {
+ 		WARN_ON(!cl->un.leaf.q);
+-		qdisc_destroy(cl->un.leaf.q);
++		qdisc_put(cl->un.leaf.q);
+ 	}
+ 	gen_kill_estimator(&cl->rate_est);
+ 	tcf_block_put(cl->block);
+@@ -1427,7 +1427,7 @@ static int htb_change_class(struct Qdisc *sch, u32 classid,
+ 			/* turn parent into inner node */
+ 			qdisc_reset(parent->un.leaf.q);
+ 			qdisc_tree_reduce_backlog(parent->un.leaf.q, qlen, backlog);
+-			qdisc_destroy(parent->un.leaf.q);
++			qdisc_put(parent->un.leaf.q);
+ 			if (parent->prio_activity)
+ 				htb_deactivate(q, parent);
+ 
+diff --git a/net/sched/sch_mq.c b/net/sched/sch_mq.c
+index 442ac9c3f16f..0fcfb395673d 100644
+--- a/net/sched/sch_mq.c
++++ b/net/sched/sch_mq.c
+@@ -31,7 +31,7 @@ static void mq_destroy(struct Qdisc *sch)
+ 	if (!priv->qdiscs)
+ 		return;
+ 	for (ntx = 0; ntx < dev->num_tx_queues && priv->qdiscs[ntx]; ntx++)
+-		qdisc_destroy(priv->qdiscs[ntx]);
++		qdisc_put(priv->qdiscs[ntx]);
+ 	kfree(priv->qdiscs);
+ }
+ 
+@@ -81,7 +81,7 @@ static void mq_attach(struct Qdisc *sch)
+ 		qdisc = priv->qdiscs[ntx];
+ 		old = dev_graft_qdisc(qdisc->dev_queue, qdisc);
+ 		if (old)
+-			qdisc_destroy(old);
++			qdisc_put(old);
+ #ifdef CONFIG_NET_SCHED
+ 		if (ntx < dev->real_num_tx_queues)
+ 			qdisc_hash_add(qdisc, false);
+diff --git a/net/sched/sch_mqprio.c b/net/sched/sch_mqprio.c
+index bb8d3fbc13bb..d9c88140dc00 100644
+--- a/net/sched/sch_mqprio.c
++++ b/net/sched/sch_mqprio.c
+@@ -34,7 +34,7 @@ static void mqprio_destroy(struct Qdisc *sch)
+ 		for (ntx = 0;
+ 		     ntx < dev->num_tx_queues && priv->qdiscs[ntx];
+ 		     ntx++)
+-			qdisc_destroy(priv->qdiscs[ntx]);
++			qdisc_put(priv->qdiscs[ntx]);
+ 		kfree(priv->qdiscs);
+ 	}
+ 
+@@ -181,7 +181,7 @@ static void mqprio_attach(struct Qdisc *sch)
+ 		qdisc = priv->qdiscs[ntx];
+ 		old = dev_graft_qdisc(qdisc->dev_queue, qdisc);
+ 		if (old)
+-			qdisc_destroy(old);
++			qdisc_put(old);
+ 		if (ntx < dev->real_num_tx_queues)
+ 			qdisc_hash_add(qdisc, false);
+ 	}
+diff --git a/net/sched/sch_multiq.c b/net/sched/sch_multiq.c
+index 65aa03d46857..07d74e334840 100644
+--- a/net/sched/sch_multiq.c
++++ b/net/sched/sch_multiq.c
+@@ -174,7 +174,7 @@ multiq_destroy(struct Qdisc *sch)
+ 
+ 	tcf_block_put(q->block);
+ 	for (band = 0; band < q->bands; band++)
+-		qdisc_destroy(q->queues[band]);
++		qdisc_put(q->queues[band]);
+ 
+ 	kfree(q->queues);
+ }
+@@ -202,7 +202,7 @@ static int multiq_tune(struct Qdisc *sch, struct nlattr *opt)
+ 			q->queues[i] = &noop_qdisc;
+ 			qdisc_tree_reduce_backlog(child, child->q.qlen,
+ 						  child->qstats.backlog);
+-			qdisc_destroy(child);
++			qdisc_put(child);
+ 		}
+ 	}
+ 
+@@ -226,7 +226,7 @@ static int multiq_tune(struct Qdisc *sch, struct nlattr *opt)
+ 					qdisc_tree_reduce_backlog(old,
+ 								  old->q.qlen,
+ 								  old->qstats.backlog);
+-					qdisc_destroy(old);
++					qdisc_put(old);
+ 				}
+ 				sch_tree_unlock(sch);
+ 			}
+diff --git a/net/sched/sch_netem.c b/net/sched/sch_netem.c
+index bea22a4637f2..0dfe536d7637 100644
+--- a/net/sched/sch_netem.c
++++ b/net/sched/sch_netem.c
+@@ -963,7 +963,7 @@ static void netem_destroy(struct Qdisc *sch)
+ 
+ 	qdisc_watchdog_cancel(&q->watchdog);
+ 	if (q->qdisc)
+-		qdisc_destroy(q->qdisc);
++		qdisc_put(q->qdisc);
+ 	dist_free(q->delay_dist);
+ }
+ 
+diff --git a/net/sched/sch_prio.c b/net/sched/sch_prio.c
+index a8fc70a3c48c..ad3655f36c2a 100644
+--- a/net/sched/sch_prio.c
++++ b/net/sched/sch_prio.c
+@@ -158,7 +158,7 @@ prio_destroy(struct Qdisc *sch)
+ 
+ 	tcf_block_put(q->block);
+ 	for (prio = 0; prio < q->bands; prio++)
+-		qdisc_destroy(q->queues[prio]);
++		qdisc_put(q->queues[prio]);
+ }
+ 
+ static int prio_tune(struct Qdisc *sch, struct nlattr *opt)
+@@ -187,7 +187,7 @@ static int prio_tune(struct Qdisc *sch, struct nlattr *opt)
+ 					      TC_H_MAKE(sch->handle, i + 1));
+ 		if (!queues[i]) {
+ 			while (i > oldbands)
+-				qdisc_destroy(queues[--i]);
++				qdisc_put(queues[--i]);
+ 			return -ENOMEM;
+ 		}
+ 	}
+@@ -205,7 +205,7 @@ static int prio_tune(struct Qdisc *sch, struct nlattr *opt)
+ 
+ 		qdisc_tree_reduce_backlog(child, child->q.qlen,
+ 					  child->qstats.backlog);
+-		qdisc_destroy(child);
++		qdisc_put(child);
+ 	}
+ 
+ 	for (i = oldbands; i < q->bands; i++) {
+diff --git a/net/sched/sch_qfq.c b/net/sched/sch_qfq.c
+index 594c2ac319e0..7f995bb3c37e 100644
+--- a/net/sched/sch_qfq.c
++++ b/net/sched/sch_qfq.c
+@@ -529,7 +529,7 @@ static int qfq_change_class(struct Qdisc *sch, u32 classid, u32 parentid,
+ 	return 0;
+ 
+ destroy_class:
+-	qdisc_destroy(cl->qdisc);
++	qdisc_put(cl->qdisc);
+ 	kfree(cl);
+ 	return err;
+ }
+@@ -540,7 +540,7 @@ static void qfq_destroy_class(struct Qdisc *sch, struct qfq_class *cl)
+ 
+ 	qfq_rm_from_agg(q, cl);
+ 	gen_kill_estimator(&cl->rate_est);
+-	qdisc_destroy(cl->qdisc);
++	qdisc_put(cl->qdisc);
+ 	kfree(cl);
+ }
+ 
+diff --git a/net/sched/sch_red.c b/net/sched/sch_red.c
+index 40114eb7eebf..380331b3047b 100644
+--- a/net/sched/sch_red.c
++++ b/net/sched/sch_red.c
+@@ -154,7 +154,7 @@ static void red_destroy(struct Qdisc *sch)
+ 	struct red_sched_data *q = qdisc_priv(sch);
+ 
+ 	del_timer_sync(&q->adapt_timer);
+-	qdisc_destroy(q->qdisc);
++	qdisc_put(q->qdisc);
+ }
+ 
+ static const struct nla_policy red_policy[TCA_RED_MAX + 1] = {
+@@ -207,7 +207,7 @@ static int red_change(struct Qdisc *sch, struct nlattr *opt)
+ 	if (child) {
+ 		qdisc_tree_reduce_backlog(q->qdisc, q->qdisc->q.qlen,
+ 					  q->qdisc->qstats.backlog);
+-		qdisc_destroy(q->qdisc);
++		qdisc_put(q->qdisc);
+ 		q->qdisc = child;
+ 	}
+ 
+diff --git a/net/sched/sch_sfb.c b/net/sched/sch_sfb.c
+index 9962a4998993..adc8368c823a 100644
+--- a/net/sched/sch_sfb.c
++++ b/net/sched/sch_sfb.c
+@@ -472,7 +472,7 @@ static void sfb_destroy(struct Qdisc *sch)
+ 	struct sfb_sched_data *q = qdisc_priv(sch);
+ 
+ 	tcf_block_put(q->block);
+-	qdisc_destroy(q->qdisc);
++	qdisc_put(q->qdisc);
+ }
+ 
+ static const struct nla_policy sfb_policy[TCA_SFB_MAX + 1] = {
+@@ -525,7 +525,7 @@ static int sfb_change(struct Qdisc *sch, struct nlattr *opt)
+ 
+ 	qdisc_tree_reduce_backlog(q->qdisc, q->qdisc->q.qlen,
+ 				  q->qdisc->qstats.backlog);
+-	qdisc_destroy(q->qdisc);
++	qdisc_put(q->qdisc);
+ 	q->qdisc = child;
+ 
+ 	q->rehash_interval = msecs_to_jiffies(ctl->rehash_interval);
+diff --git a/net/sched/sch_tbf.c b/net/sched/sch_tbf.c
+index 107cc76b6e24..44a466807e4d 100644
+--- a/net/sched/sch_tbf.c
++++ b/net/sched/sch_tbf.c
+@@ -387,7 +387,7 @@ static int tbf_change(struct Qdisc *sch, struct nlattr *opt)
+ 	if (child) {
+ 		qdisc_tree_reduce_backlog(q->qdisc, q->qdisc->q.qlen,
+ 					  q->qdisc->qstats.backlog);
+-		qdisc_destroy(q->qdisc);
++		qdisc_put(q->qdisc);
+ 		q->qdisc = child;
+ 	}
+ 	q->limit = qopt->limit;
+@@ -432,7 +432,7 @@ static void tbf_destroy(struct Qdisc *sch)
+ 	struct tbf_sched_data *q = qdisc_priv(sch);
+ 
+ 	qdisc_watchdog_cancel(&q->watchdog);
+-	qdisc_destroy(q->qdisc);
++	qdisc_put(q->qdisc);
+ }
+ 
+ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
+
+From 735ecd664ee66a2283d700abcedd71cbd5bcaba3 Mon Sep 17 00:00:00 2001
+From: Praveen Kurapati <pkurapat@codeaurora.org>
+Date: Mon, 7 Dec 2020 18:39:16 +0530
+Subject: [PATCH] msm: ipa2: Add check to validate rule_cnt
+
+Add proper check to validate table rule count
+which may lead to overflow error.
+
+Change-Id: Idfa86878db49ad4803f8902c995eb4186a2d3523
+Signed-off-by: Praveen Kurapati <pkurapat@codeaurora.org>
+---
+ drivers/platform/msm/ipa/ipa_v2/ipa_flt.c | 5 ++++-
+ drivers/platform/msm/ipa/ipa_v2/ipa_i.h   | 1 +
+ drivers/platform/msm/ipa/ipa_v2/ipa_rt.c  | 5 ++++-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/platform/msm/ipa/ipa_v2/ipa_flt.c b/drivers/platform/msm/ipa/ipa_v2/ipa_flt.c
+index 270ae17047a8..3eb07a5c0f5b 100644
+--- a/drivers/platform/msm/ipa/ipa_v2/ipa_flt.c
++++ b/drivers/platform/msm/ipa/ipa_v2/ipa_flt.c
+@@ -1065,7 +1065,10 @@ static int __ipa_add_flt_rule(struct ipa_flt_tbl *tbl, enum ipa_ip_type ip,
+ 	} else {
+ 		list_add(&entry->link, &tbl->head_flt_rule_list);
+ 	}
+-	tbl->rule_cnt++;
++	if (tbl->rule_cnt < IPA_RULE_CNT_MAX)
++		tbl->rule_cnt++;
++	else
++		return -EINVAL;
+ 	if (entry->rt_tbl)
+ 		entry->rt_tbl->ref_cnt++;
+ 	id = ipa_id_alloc(entry);
+diff --git a/drivers/platform/msm/ipa/ipa_v2/ipa_i.h b/drivers/platform/msm/ipa/ipa_v2/ipa_i.h
+index 6e37f11f7acc..fcab27d23132 100644
+--- a/drivers/platform/msm/ipa/ipa_v2/ipa_i.h
++++ b/drivers/platform/msm/ipa/ipa_v2/ipa_i.h
+@@ -211,6 +211,7 @@
+ #define IPA2_ACTIVE_CLIENTS_LOG_LINE_LEN 96
+ #define IPA2_ACTIVE_CLIENTS_LOG_HASHTABLE_SIZE 50
+ #define IPA2_ACTIVE_CLIENTS_LOG_NAME_LEN 40
++#define IPA_RULE_CNT_MAX 512
+ 
+ struct ipa2_active_client_htable_entry {
+ 	struct hlist_node list;
+diff --git a/drivers/platform/msm/ipa/ipa_v2/ipa_rt.c b/drivers/platform/msm/ipa/ipa_v2/ipa_rt.c
+index 79514d932edd..45174c9938a3 100644
+--- a/drivers/platform/msm/ipa/ipa_v2/ipa_rt.c
++++ b/drivers/platform/msm/ipa/ipa_v2/ipa_rt.c
+@@ -1087,7 +1087,10 @@ static int __ipa_add_rt_rule(enum ipa_ip_type ip, const char *name,
+ 		list_add_tail(&entry->link, &tbl->head_rt_rule_list);
+ 	else
+ 		list_add(&entry->link, &tbl->head_rt_rule_list);
+-	tbl->rule_cnt++;
++	if (tbl->rule_cnt < IPA_RULE_CNT_MAX)
++		tbl->rule_cnt++;
++	else
++		return -EINVAL;
+ 	if (entry->hdr)
+ 		entry->hdr->ref_cnt++;
+ 	else if (entry->proc_ctx)
+
+From 1f4e254c69f8929243e9a08183f884a56870f41a Mon Sep 17 00:00:00 2001
+From: Lee Jones <lee.jones@linaro.org>
+Date: Fri, 11 Mar 2022 14:19:59 +0000
+Subject: [PATCH] ANDROID: dm-bow: Protect Ranges fetched and erased from the
+ RB tree
+
+Bug: 195565510
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Change-Id: Ic8134eb902aa7d929e3121b2f69b1d258f570652
+---
+ drivers/md/dm-bow.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/md/dm-bow.c b/drivers/md/dm-bow.c
+index 013fe9cc99e7..4a301f58f3ba 100644
+--- a/drivers/md/dm-bow.c
++++ b/drivers/md/dm-bow.c
+@@ -599,6 +599,7 @@ static void dm_bow_dtr(struct dm_target *ti)
+ 	struct bow_context *bc = (struct bow_context *) ti->private;
+ 	struct kobject *kobj;
+ 
++	mutex_lock(&bc->ranges_lock);
+ 	while (rb_first(&bc->ranges)) {
+ 		struct bow_range *br = container_of(rb_first(&bc->ranges),
+ 						    struct bow_range, node);
+@@ -606,6 +607,8 @@ static void dm_bow_dtr(struct dm_target *ti)
+ 		rb_erase(&br->node, &bc->ranges);
+ 		kfree(br);
+ 	}
++	mutex_unlock(&bc->ranges_lock);
++
+ 	if (bc->workqueue)
+ 		destroy_workqueue(bc->workqueue);
+ 	if (bc->bufio)
+@@ -1182,6 +1185,7 @@ static void dm_bow_tablestatus(struct dm_target *ti, char *result,
+ 		return;
+ 	}
+ 
++	mutex_lock(&bc->ranges_lock);
+ 	for (i = rb_first(&bc->ranges); i; i = rb_next(i)) {
+ 		struct bow_range *br = container_of(i, struct bow_range, node);
+ 
+@@ -1189,11 +1193,11 @@ static void dm_bow_tablestatus(struct dm_target *ti, char *result,
+ 				    readable_type[br->type],
+ 				    (unsigned long long)br->sector);
+ 		if (result >= end)
+-			return;
++			goto unlock;
+ 
+ 		result += scnprintf(result, end - result, "\n");
+ 		if (result >= end)
+-			return;
++			goto unlock;
+ 
+ 		if (br->type == TRIMMED)
+ 			++trimmed_range_count;
+@@ -1215,19 +1219,22 @@ static void dm_bow_tablestatus(struct dm_target *ti, char *result,
+ 		if (!rb_next(i)) {
+ 			scnprintf(result, end - result,
+ 				  "\nERROR: Last range not of type TOP");
+-			return;
++			goto unlock;
+ 		}
+ 
+ 		if (br->sector > range_top(br)) {
+ 			scnprintf(result, end - result,
+ 				  "\nERROR: sectors out of order");
+-			return;
++			goto unlock;
+ 		}
+ 	}
+ 
+ 	if (trimmed_range_count != trimmed_list_length)
+ 		scnprintf(result, end - result,
+ 			  "\nERROR: not all trimmed ranges in trimmed list");
++
++unlock:
++	mutex_unlock(&bc->ranges_lock);
+ }
+ 
+ static void dm_bow_status(struct dm_target *ti, status_type_t type,
+
+From d46308861ebb7a50f396fd68a7970bb1d0bfd47c Mon Sep 17 00:00:00 2001
+From: Daniel Borkmann <daniel@iogearbox.net>
+Date: Tue, 4 Jan 2022 14:16:03 +0000
+Subject: [PATCH] UPSTREAM: bpf: Fix out of bounds access from invalid
+ *_or_null type verification
+
+[ no upstream commit given implicitly fixed through the larger refactoring
+  in c25b2ae136039ffa820c26138ed4a5e5f3ab3841 ]
+
+While auditing some other code, I noticed missing checks inside the pointer
+arithmetic simulation, more specifically, adjust_ptr_min_max_vals(). Several
+*_OR_NULL types are not rejected whereas they are _required_ to be rejected
+given the expectation is that they get promoted into a 'real' pointer type
+for the success case, that is, after an explicit != NULL check.
+
+One case which stands out and is accessible from unprivileged (iff enabled
+given disabled by default) is BPF ring buffer. From crafting a PoC, the NULL
+check can be bypassed through an offset, and its id marking will then lead
+to promotion of mem_or_null to a mem type.
+
+bpf_ringbuf_reserve() helper can trigger this case through passing of reserved
+flags, for example.
+
+  func#0 @0
+  0: R1=ctx(id=0,off=0,imm=0) R10=fp0
+  0: (7a) *(u64 *)(r10 -8) = 0
+  1: R1=ctx(id=0,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm
+  1: (18) r1 = 0x0
+  3: R1_w=map_ptr(id=0,off=0,ks=0,vs=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm
+  3: (b7) r2 = 8
+  4: R1_w=map_ptr(id=0,off=0,ks=0,vs=0,imm=0) R2_w=invP8 R10=fp0 fp-8_w=mmmmmmmm
+  4: (b7) r3 = 0
+  5: R1_w=map_ptr(id=0,off=0,ks=0,vs=0,imm=0) R2_w=invP8 R3_w=invP0 R10=fp0 fp-8_w=mmmmmmmm
+  5: (85) call bpf_ringbuf_reserve#131
+  6: R0_w=mem_or_null(id=2,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  6: (bf) r6 = r0
+  7: R0_w=mem_or_null(id=2,ref_obj_id=2,off=0,imm=0) R6_w=mem_or_null(id=2,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  7: (07) r0 += 1
+  8: R0_w=mem_or_null(id=2,ref_obj_id=2,off=1,imm=0) R6_w=mem_or_null(id=2,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  8: (15) if r0 == 0x0 goto pc+4
+   R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  9: R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  9: (62) *(u32 *)(r6 +0) = 0
+   R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  10: R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  10: (bf) r1 = r6
+  11: R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R1_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  11: (b7) r2 = 0
+  12: R0_w=mem(id=0,ref_obj_id=0,off=0,imm=0) R1_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R2_w=invP0 R6_w=mem(id=0,ref_obj_id=2,off=0,imm=0) R10=fp0 fp-8_w=mmmmmmmm refs=2
+  12: (85) call bpf_ringbuf_submit#132
+  13: R6=invP(id=0) R10=fp0 fp-8=mmmmmmmm
+  13: (b7) r0 = 0
+  14: R0_w=invP0 R6=invP(id=0) R10=fp0 fp-8=mmmmmmmm
+  14: (95) exit
+
+  from 8 to 13: safe
+  processed 15 insns (limit 1000000) max_states_per_insn 0 total_states 1 peak_states 1 mark_read 0
+  OK
+
+All three commits, that is b121b341e598 ("bpf: Add PTR_TO_BTF_ID_OR_NULL support"),
+457f44363a88 ("bpf: Implement BPF ring buffer and verifier support for it"), and the
+afbf21dce668 ("bpf: Support readonly/readwrite buffers in verifier") suffer the same
+cause and their *_OR_NULL type pendants must be rejected in adjust_ptr_min_max_vals().
+
+Make the test more robust by reusing reg_type_may_be_null() helper such that we catch
+all *_OR_NULL types we have today and in future.
+
+Note that pointer arithmetic on PTR_TO_BTF_ID, PTR_TO_RDONLY_BUF, and PTR_TO_RDWR_BUF
+is generally allowed.
+
+Fixes: b121b341e598 ("bpf: Add PTR_TO_BTF_ID_OR_NULL support")
+Fixes: 457f44363a88 ("bpf: Implement BPF ring buffer and verifier support for it")
+Fixes: afbf21dce668 ("bpf: Support readonly/readwrite buffers in verifier")
+Change-Id: Ibcc1a3e42dadc5c0420fb4809561e00ed5526b8e
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ kernel/bpf/verifier.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/bpf/verifier.c b/kernel/bpf/verifier.c
+index 013b9062c47c..316aa752dc10 100644
+--- a/kernel/bpf/verifier.c
++++ b/kernel/bpf/verifier.c
+@@ -4655,16 +4655,16 @@ static int adjust_ptr_min_max_vals(struct bpf_verifier_env *env,
+ 		/* fall-through */
+ 	case PTR_TO_PACKET_END:
+ 	case PTR_TO_SOCKET:
+-	case PTR_TO_SOCKET_OR_NULL:
+ 	case PTR_TO_SOCK_COMMON:
+-	case PTR_TO_SOCK_COMMON_OR_NULL:
+ 	case PTR_TO_TCP_SOCK:
+-	case PTR_TO_TCP_SOCK_OR_NULL:
+ 	case PTR_TO_XDP_SOCK:
++reject:
+ 		verbose(env, "R%d pointer arithmetic on %s prohibited\n",
+ 			dst, reg_type_str[ptr_reg->type]);
+ 		return -EACCES;
+ 	default:
++		if (reg_type_may_be_null(ptr_reg->type))
++			goto reject;
+ 		break;
+ 	}
+ 
+
+From 212f6697ff90336cc993d163411775ec969deeb6 Mon Sep 17 00:00:00 2001
+From: Sahitya Tummala <stummala@codeaurora.org>
+Date: Tue, 16 Mar 2021 14:59:18 +0530
+Subject: [PATCH] BACKPORT: f2fs: allow to change discard policy based on
+ cached discard cmds
+
+With the default DPOLICY_BG discard thread is ioaware, which prevents
+the discard thread from issuing the discard commands. On low RAM setups,
+it is observed that these discard commands in the cache are consuming
+high memory. This patch aims to relax the memory pressure on the system
+due to f2fs pending discard cmds by changing the policy to DPOLICY_FORCE
+based on the nm_i->ram_thresh configured.
+
+Change-Id: I5f48f908cd6bbe6c6f3addda7018f7daffbb53b5
+Signed-off-by: Sahitya Tummala <stummala@codeaurora.org>
+Reviewed-by: Chao Yu <yuchao0@huawei.com>
+Signed-off-by: Jaegeuk Kim <jaegeuk@kernel.org>
+[mkbestas: backport to 4.9]
+Signed-off-by: Michael Bestas <mkbestas@lineageos.org>
+---
+ fs/f2fs/node.c    | 8 ++++++++
+ fs/f2fs/node.h    | 1 +
+ fs/f2fs/segment.c | 3 ++-
+ 3 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
+index 7c4c876b4d4b..55beccae32f5 100644
+--- a/fs/f2fs/node.c
++++ b/fs/f2fs/node.c
+@@ -44,11 +44,15 @@ int f2fs_check_nid_range(struct f2fs_sb_info *sbi, nid_t nid)
+ bool f2fs_available_free_memory(struct f2fs_sb_info *sbi, int type)
+ {
+ 	struct f2fs_nm_info *nm_i = NM_I(sbi);
++	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+ 	struct sysinfo val;
+ 	unsigned long avail_ram;
+ 	unsigned long mem_size = 0;
+ 	bool res = false;
+ 
++	if (!nm_i)
++		return true;
++
+ 	si_meminfo(&val);
+ 
+ 	/* only uses low memory */
+@@ -90,6 +94,10 @@ bool f2fs_available_free_memory(struct f2fs_sb_info *sbi, int type)
+ 		/* it allows 20% / total_ram for inmemory pages */
+ 		mem_size = get_pages(sbi, F2FS_INMEM_PAGES);
+ 		res = mem_size < (val.totalram / 5);
++	} else if (type == DISCARD_CACHE) {
++		mem_size = (atomic_read(&dcc->discard_cmd_cnt) *
++				sizeof(struct discard_cmd)) >> PAGE_SHIFT;
++		res = mem_size < (avail_ram * nm_i->ram_thresh / 100);
+ 	} else {
+ 		if (!sbi->sb->s_bdi->wb.dirty_exceeded)
+ 			return true;
+diff --git a/fs/f2fs/node.h b/fs/f2fs/node.h
+index 69e5859e993c..1183d5bf903b 100644
+--- a/fs/f2fs/node.h
++++ b/fs/f2fs/node.h
+@@ -147,6 +147,7 @@ enum mem_type {
+ 	INO_ENTRIES,	/* indicates inode entries */
+ 	EXTENT_CACHE,	/* indicates extent cache */
+ 	INMEM_PAGES,	/* indicates inmemory pages */
++	DISCARD_CACHE,	/* indicates memory of cached discard cmds */
+ 	BASE_CHECK,	/* check kernel status */
+ };
+ 
+diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
+index 17cf37d10956..e902369026ff 100644
+--- a/fs/f2fs/segment.c
++++ b/fs/f2fs/segment.c
+@@ -1731,7 +1731,8 @@ static int issue_discard_thread(void *data)
+ 			continue;
+ 		}
+ 
+-		if (sbi->gc_mode == GC_URGENT)
++		if (sbi->gc_mode == GC_URGENT ||
++			!f2fs_available_free_memory(sbi, DISCARD_CACHE))
+ 			__init_discard_policy(sbi, &dpolicy, DPOLICY_FORCE, 1);
+ 
+ 		sb_start_intwrite(sbi->sb);
+
+From 694585a55caa3e1873c889ab3aa1c47d93144fad Mon Sep 17 00:00:00 2001
+From: Dongliang Mu <mudongliangabcd@gmail.com>
+Date: Thu, 4 Nov 2021 16:22:01 +0800
+Subject: [PATCH] UPSTREAM: f2fs: fix UAF in f2fs_available_free_memory
+
+if2fs_fill_super
+-> f2fs_build_segment_manager
+   -> create_discard_cmd_control
+      -> f2fs_start_discard_thread
+
+It invokes kthread_run to create a thread and run issue_discard_thread.
+
+However, if f2fs_build_node_manager fails, the control flow goes to
+free_nm and calls f2fs_destroy_node_manager. This function will free
+sbi->nm_info. However, if issue_discard_thread accesses sbi->nm_info
+after the deallocation, but before the f2fs_stop_discard_thread, it will
+cause UAF(Use-after-free).
+
+-> f2fs_destroy_segment_manager
+   -> destroy_discard_cmd_control
+      -> f2fs_stop_discard_thread
+
+Fix this by stopping discard thread before f2fs_destroy_node_manager.
+
+Note that, the commit d6d2b491a82e1 introduces the call of
+f2fs_available_free_memory into issue_discard_thread.
+
+Cc: stable@vger.kernel.org
+Fixes: d6d2b491a82e ("f2fs: allow to change discard policy based on cached discard cmds")
+Signed-off-by: Dongliang Mu <mudongliangabcd@gmail.com>
+Reviewed-by: Chao Yu <chao@kernel.org>
+Signed-off-by: Jaegeuk Kim <jaegeuk@kernel.org>
+(cherry picked from commit 5429c9dbc9025f9a166f64e22e3a69c94fd5b29b)
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Change-Id: If121b453455b11b2aded8ba8a3899faad431dbd3
+---
+ fs/f2fs/super.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fs/f2fs/super.c b/fs/f2fs/super.c
+index c15509f31958..4399037097d6 100644
+--- a/fs/f2fs/super.c
++++ b/fs/f2fs/super.c
+@@ -3866,6 +3866,8 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
+ free_stats:
+ 	f2fs_destroy_stats(sbi);
+ free_nm:
++	/* stop discard thread before destroying node manager */
++	f2fs_stop_discard_thread(sbi);
+ 	f2fs_destroy_node_manager(sbi);
+ free_sm:
+ 	f2fs_destroy_segment_manager(sbi);
+
