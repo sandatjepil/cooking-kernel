@@ -2901,6 +2901,75 @@ index 503fc06344ba..04141282c10b 100644
  				      IES_DelTS);
  	return status;
 
+From 232be7529ed05c2d0a148bcb643fe74d21702cb8 Mon Sep 17 00:00:00 2001
+From: Jilai Wang <quic_jilaiw@quicinc.com>
+Date: Thu, 22 Jun 2023 11:41:21 -0400
+Subject: [PATCH] BACKPORT: msm: npu: Fix use after free issue
+
+There is possibility that network will be used after free.
+This change is to fix this issue.
+
+Change-Id: I25eaf33f2a641127f13ec20df5da29d2b2923828
+Signed-off-by: Jilai Wang <quic_jilaiw@quicinc.com>
+---
+ drivers/media/platform/msm/npu/npu_mgr.c | 15 +++++++++++++++
+ drivers/media/platform/msm/npu/npu_mgr.h |  1 +
+ 2 files changed, 16 insertions(+)
+
+diff --git a/drivers/media/platform/msm/npu/npu_mgr.c b/drivers/media/platform/msm/npu/npu_mgr.c
+index 9f8fa45d8a0d..bfb30998e780 100644
+--- a/drivers/media/platform/msm/npu/npu_mgr.c
++++ b/drivers/media/platform/msm/npu/npu_mgr.c
+@@ -1620,6 +1620,13 @@ int32_t npu_host_unload_network(struct npu_client *client,
+ 		return -EINVAL;
+ 	}
+ 
++	if (network->is_unloading) {
++		pr_err("network is unloading\n");
++		network_put(network);
++		mutex_unlock(&host_ctx->lock);
++		return -EINVAL;
++	}
++
+ 	if (!network->is_active) {
+ 		pr_err("network is not active\n");
+ 		network_put(network);
+@@ -1632,6 +1639,8 @@ int32_t npu_host_unload_network(struct npu_client *client,
+ 		goto free_network;
+ 	}
+ 
++	network->is_unloading = true;
++
+ 	pr_debug("Unload network %lld\n", network->id);
+ 	/* prepare IPC packet for UNLOAD */
+ 	unload_packet.header.cmd_type = NPU_IPC_CMD_UNLOAD;
+@@ -1734,6 +1743,12 @@ int32_t npu_host_exec_network(struct npu_client *client,
+ 	if (atomic_inc_return(&host_ctx->network_execute_cnt) == 1)
+ 		npu_notify_cdsprm_cxlimit_activity(npu_dev, true);
+ 
++	if (network->is_unloading) {
++		pr_err("network is unloading\n");
++		ret = -EINVAL;
++		goto exec_done;
++	}
++
+ 	if (!network->is_active) {
+ 		pr_err("network is not active\n");
+ 		ret = -EINVAL;
+diff --git a/drivers/media/platform/msm/npu/npu_mgr.h b/drivers/media/platform/msm/npu/npu_mgr.h
+index f42e1b76c50b..44b04d3e7714 100644
+--- a/drivers/media/platform/msm/npu/npu_mgr.h
++++ b/drivers/media/platform/msm/npu/npu_mgr.h
+@@ -59,6 +59,7 @@ struct npu_network {
+ 	atomic_t ref_cnt;
+ 	bool is_valid;
+ 	bool is_active;
++	bool is_unloading;
+ 	bool fw_error;
+ 	bool cmd_pending;
+ 	bool cmd_async;
+
+
 From 25d92bdd393e6cc987a77b9207c3188687f8c82b Mon Sep 17 00:00:00 2001
 From: Gao Wang <quic_gaowang@quicinc.com>
 Date: Thu, 12 Dec 2024 16:32:48 +0800
@@ -3980,140 +4049,3 @@ index 013b9062c47c..316aa752dc10 100644
  		break;
  	}
  
-
-From 212f6697ff90336cc993d163411775ec969deeb6 Mon Sep 17 00:00:00 2001
-From: Sahitya Tummala <stummala@codeaurora.org>
-Date: Tue, 16 Mar 2021 14:59:18 +0530
-Subject: [PATCH] BACKPORT: f2fs: allow to change discard policy based on
- cached discard cmds
-
-With the default DPOLICY_BG discard thread is ioaware, which prevents
-the discard thread from issuing the discard commands. On low RAM setups,
-it is observed that these discard commands in the cache are consuming
-high memory. This patch aims to relax the memory pressure on the system
-due to f2fs pending discard cmds by changing the policy to DPOLICY_FORCE
-based on the nm_i->ram_thresh configured.
-
-Change-Id: I5f48f908cd6bbe6c6f3addda7018f7daffbb53b5
-Signed-off-by: Sahitya Tummala <stummala@codeaurora.org>
-Reviewed-by: Chao Yu <yuchao0@huawei.com>
-Signed-off-by: Jaegeuk Kim <jaegeuk@kernel.org>
-[mkbestas: backport to 4.9]
-Signed-off-by: Michael Bestas <mkbestas@lineageos.org>
----
- fs/f2fs/node.c    | 8 ++++++++
- fs/f2fs/node.h    | 1 +
- fs/f2fs/segment.c | 3 ++-
- 3 files changed, 11 insertions(+), 1 deletion(-)
-
-diff --git a/fs/f2fs/node.c b/fs/f2fs/node.c
-index 7c4c876b4d4b..55beccae32f5 100644
---- a/fs/f2fs/node.c
-+++ b/fs/f2fs/node.c
-@@ -44,11 +44,15 @@ int f2fs_check_nid_range(struct f2fs_sb_info *sbi, nid_t nid)
- bool f2fs_available_free_memory(struct f2fs_sb_info *sbi, int type)
- {
- 	struct f2fs_nm_info *nm_i = NM_I(sbi);
-+	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
- 	struct sysinfo val;
- 	unsigned long avail_ram;
- 	unsigned long mem_size = 0;
- 	bool res = false;
- 
-+	if (!nm_i)
-+		return true;
-+
- 	si_meminfo(&val);
- 
- 	/* only uses low memory */
-@@ -90,6 +94,10 @@ bool f2fs_available_free_memory(struct f2fs_sb_info *sbi, int type)
- 		/* it allows 20% / total_ram for inmemory pages */
- 		mem_size = get_pages(sbi, F2FS_INMEM_PAGES);
- 		res = mem_size < (val.totalram / 5);
-+	} else if (type == DISCARD_CACHE) {
-+		mem_size = (atomic_read(&dcc->discard_cmd_cnt) *
-+				sizeof(struct discard_cmd)) >> PAGE_SHIFT;
-+		res = mem_size < (avail_ram * nm_i->ram_thresh / 100);
- 	} else {
- 		if (!sbi->sb->s_bdi->wb.dirty_exceeded)
- 			return true;
-diff --git a/fs/f2fs/node.h b/fs/f2fs/node.h
-index 69e5859e993c..1183d5bf903b 100644
---- a/fs/f2fs/node.h
-+++ b/fs/f2fs/node.h
-@@ -147,6 +147,7 @@ enum mem_type {
- 	INO_ENTRIES,	/* indicates inode entries */
- 	EXTENT_CACHE,	/* indicates extent cache */
- 	INMEM_PAGES,	/* indicates inmemory pages */
-+	DISCARD_CACHE,	/* indicates memory of cached discard cmds */
- 	BASE_CHECK,	/* check kernel status */
- };
- 
-diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
-index 17cf37d10956..e902369026ff 100644
---- a/fs/f2fs/segment.c
-+++ b/fs/f2fs/segment.c
-@@ -1731,7 +1731,8 @@ static int issue_discard_thread(void *data)
- 			continue;
- 		}
- 
--		if (sbi->gc_mode == GC_URGENT)
-+		if (sbi->gc_mode == GC_URGENT ||
-+			!f2fs_available_free_memory(sbi, DISCARD_CACHE))
- 			__init_discard_policy(sbi, &dpolicy, DPOLICY_FORCE, 1);
- 
- 		sb_start_intwrite(sbi->sb);
-
-From 694585a55caa3e1873c889ab3aa1c47d93144fad Mon Sep 17 00:00:00 2001
-From: Dongliang Mu <mudongliangabcd@gmail.com>
-Date: Thu, 4 Nov 2021 16:22:01 +0800
-Subject: [PATCH] UPSTREAM: f2fs: fix UAF in f2fs_available_free_memory
-
-if2fs_fill_super
--> f2fs_build_segment_manager
-   -> create_discard_cmd_control
-      -> f2fs_start_discard_thread
-
-It invokes kthread_run to create a thread and run issue_discard_thread.
-
-However, if f2fs_build_node_manager fails, the control flow goes to
-free_nm and calls f2fs_destroy_node_manager. This function will free
-sbi->nm_info. However, if issue_discard_thread accesses sbi->nm_info
-after the deallocation, but before the f2fs_stop_discard_thread, it will
-cause UAF(Use-after-free).
-
--> f2fs_destroy_segment_manager
-   -> destroy_discard_cmd_control
-      -> f2fs_stop_discard_thread
-
-Fix this by stopping discard thread before f2fs_destroy_node_manager.
-
-Note that, the commit d6d2b491a82e1 introduces the call of
-f2fs_available_free_memory into issue_discard_thread.
-
-Cc: stable@vger.kernel.org
-Fixes: d6d2b491a82e ("f2fs: allow to change discard policy based on cached discard cmds")
-Signed-off-by: Dongliang Mu <mudongliangabcd@gmail.com>
-Reviewed-by: Chao Yu <chao@kernel.org>
-Signed-off-by: Jaegeuk Kim <jaegeuk@kernel.org>
-(cherry picked from commit 5429c9dbc9025f9a166f64e22e3a69c94fd5b29b)
-Signed-off-by: Lee Jones <lee.jones@linaro.org>
-Change-Id: If121b453455b11b2aded8ba8a3899faad431dbd3
----
- fs/f2fs/super.c | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/fs/f2fs/super.c b/fs/f2fs/super.c
-index c15509f31958..4399037097d6 100644
---- a/fs/f2fs/super.c
-+++ b/fs/f2fs/super.c
-@@ -3866,6 +3866,8 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
- free_stats:
- 	f2fs_destroy_stats(sbi);
- free_nm:
-+	/* stop discard thread before destroying node manager */
-+	f2fs_stop_discard_thread(sbi);
- 	f2fs_destroy_node_manager(sbi);
- free_sm:
- 	f2fs_destroy_segment_manager(sbi);
-
