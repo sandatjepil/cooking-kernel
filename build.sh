@@ -21,10 +21,6 @@ PATCH_APPLY=(
 PATCH_REVERT=(
 )
 
-curl -sL https://github.com/sandatjepil/kernel_xiaomi_sweet/commit/eaa26532a3d37252dd0a4270a4a03fe626259432.patch | patch -p1 -R
-# cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-# git commit -am "merge remote tracking branch 'LineageOS/android_kernel_xiaomi_sm6150' into 16"
-
 # Set the Variables
 KERNELNAME="ElectroWizards"
 DEVICENAME="Redmi Note 10 Pro (sweet)"
