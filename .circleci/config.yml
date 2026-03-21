@@ -9,7 +9,7 @@ jobs:
           name: Kernel 4.14.x
           shell: /bin/bash
           command: |
-            git clone -q --depth 1 https://github.com/basamaryan/kernel_xiaomi_sm6150 kernel
+            git clone -q --depth 1 -b 16 https://github.com/sandatjepil/kernel_xiaomi_sweet kernel
             bash build.sh
           no_output_timeout : 1h
 workflows:

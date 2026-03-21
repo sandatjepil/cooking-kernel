@@ -17,26 +17,20 @@ git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 PATCH_APPLY=(
-"uclamp.patch"
-"iosched.patch"
-"ln8k.patch"
-"lineage.patch"
 )
 PATCH_REVERT=(
-"revert140mhz.patch"
 )
 
 # patch -p1 -R < ../90hz.patch
-cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "merge remote tracking branch 'LineageOS/android_kernel_xiaomi_sm6150' into 16"
+# cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
+# git commit -am "merge remote tracking branch 'LineageOS/android_kernel_xiaomi_sm6150' into 16"
 
 # Set the Variables
 KERNELNAME="ElectroWizards"
 DEVICENAME="Redmi Note 10 Pro (sweet)"
 ANDRVER="11-16"
 ANDRVERTAG="(Red Velvet Cake - Baklava)"
-KERVER="$(make kernelversion | grep -oP "\d+\.\d+\.\d+")"
-VARIANT="End Of Life"
+KERVER="$(make kernelversion)"
 export KBUILD_BUILD_HOST="Litterbox"
 
 # Build with KSU?
@@ -161,7 +155,7 @@ start_cooking() {
 		KSU)
 			# Ambil Update xxKSU terbaru
 			KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
-			patch -p1 -N < ../umount.patch || build_fail
+			# patch -p1 -N < ../umount.patch || build_fail
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
 			pushd KernelSU
 			patch -p1 -N < ../../ksuver.patch
@@ -169,7 +163,7 @@ start_cooking() {
 			KSU_VERSION=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
 			export KCFLAGS='-DKSU_VERSION_TAG=\"'"$KSU_VERSION"'\"'
 			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION 🤫
-Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager"
+Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager. Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
 			;;
 		NoKSU)
 			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/sweet_defconfig
