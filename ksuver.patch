@@ -54,7 +54,7 @@ index 3ca054dc..5d077e41 100644
 +#ifdef CONFIG_KSU_KPROBES_KSUD
 +	type = "Kprobes";
 +#elif defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE)
-+	type = "Syscall";
++	type = "Syscall-Tamper";
 +#endif
 +
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
