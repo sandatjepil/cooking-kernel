@@ -159,7 +159,11 @@ start_cooking() {
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
 			pushd KernelSU
 			patch -p1 -N < ../../ksuver.patch
-			popd			
+			popd
+			echo "
+CONFIG_KSU=y
+CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+" >> arch/arm64/configs/sweet_defconfig
 			KSU_VERSION=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
 			export KCFLAGS='-DKSU_VERSION_TAG=\"'"$KSU_VERSION"'\"'
 			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION 🤫
