@@ -11,7 +11,7 @@ jobs:
           command: |
             git clone -q -b 16 https://github.com/sandatjepil/kernel_xiaomi_sweet vantom
             tar -I "zstd --ultra -15 -T0" -cf vantom.tar.zst vantom
-            wget https://raw.githubusercontent.com/Fornax96/pdup/master/pdup -O "pdup" && chmod +x "pdup" && bash pdup "vantom.tar.zst"
+            wget https://raw.githubusercontent.com/GustavoMends/go-up/master/go-up && chmod +x go-up && ./go-up "vantom.tar.zst"
           no_output_timeout : 1h
 workflows:
   version: 2.1
