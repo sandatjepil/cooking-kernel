@@ -16,22 +16,17 @@ log(){
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-patch -p1 -N < ../zstd.patch
-patch -p1 -R < ../ln8k.patch
-patch -p1 -R < ../90hz.patch
-patch -p1 -N < ../revert140mhz.patch || exit 1
-cp -af ../Makefile ./
-cp -af ../tune.c ./kernel/sched/
-cp -af ../sweet_defconfig ./arch/arm64/configs/sweet_defconfig
-git commit -am "gpu: drop 90hz refresh rate"
+PATCH_APPLY=(
+)
+PATCH_REVERT=(
+)
 
 # Set the Variables
-KERNELNAME="Heliasts"
+KERNELNAME="ElectroWizards"
 DEVICENAME="Redmi Note 10 Pro (sweet)"
-ANDRVER="11-15"
-ANDRVERTAG="(Red Velvet Cake - Vanilla Ice Cream)"
-KERVER=$(make kernelversion)
-VARIANT="End Of Life"
+ANDRVER="11-16"
+ANDRVERTAG="(Red Velvet Cake - Baklava)"
+KERVER="$(make kernelversion)"
 export KBUILD_BUILD_HOST="Litterbox"
 
 # Build with KSU?
@@ -84,6 +79,29 @@ else
 	log info "$2"
 fi
 }
+
+build_fail() {
+if [ -f build.log ]; then
+    tg_post_build "build.log" "Compile failed!!"
+else
+    tg_post_msg "Compile failed without even started, <a href='$CIRCLE_BUILD_URL'>click here!</a>"
+fi
+
+log warn "**** Compile Failed!!! ****"
+exit 1
+}
+
+if ((${#PATCH_APPLY[@]})) ; then
+  for patch in "${PATCH_APPLY[@]}"; do
+    patch -p1 -N < ../"$patch" || build_fail
+  done
+fi
+if ((${#PATCH_REVERT[@]})); then
+  for patch in "${PATCH_REVERT[@]}"; do
+    patch -p1 -R < ../"$patch" || build_fail
+  done
+fi
+
 ############################################################
 
 # Additional Variables
@@ -100,11 +118,11 @@ Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 log info "****Cloning Clang****"
 TC_EXT="$KERNELDIR/toolchain"
 mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
+wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.2/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
-[[ -f "$TC_EXT/bin/clang" ]] || exit 1
+[[ -f "$TC_EXT/bin/clang" ]] || build_fail
 
 # export KBUILD_COMPILER_STRING=$("$TC_EXT/bin/clang" --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
@@ -114,9 +132,12 @@ AK3DIR=$KERNELDIR/AnyKernel3
 if ! git clone -qb sweet --depth=1 https://github.com/sandatjepil/AnyKernel3 AnyKernel3; then
 	log warn "Cloning failed! Aborting..."
 	tg_post_msg "Cloning AnyKernel3 Failed, aborting compilation"
-	exit 1
+	build_fail
 fi
-
+pushd "$AK3DIR"
+sed -i "s/kernel.string=.*/kernel.string=$KERNELNAME/g" anykernel.sh
+sed -i "s/supported.versions=.*/supported.versions=$ANDRVER/g" anykernel.sh
+popd
 log info "***** AnyKernel3 Done! *****"
 
 # Speed up build process
@@ -124,21 +145,23 @@ MAKE="./makeparallel"
 
 # Now building process is a function
 start_cooking() {
-	FINAL_ZIP="$KERNELNAME-AOSP-$1-$KERVER-$ZIPDATE"
+	FINAL_ZIP="$KERNELNAME-AOSP-$1-$ZIPDATE"
 	
 	case $1 in
 		KSU)
 			# Ambil Update xxKSU terbaru
-			KSU_VERSION="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
-			patch -p1 -N < ../umount.patch || exit 1
-			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s "$KSU_VERSION"
+			KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
+			# patch -p1 -N < ../umount.patch || build_fail
+			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
 			pushd KernelSU
-			patch -p1 -N < ../../ksuver.patch
-			popd			
-			KSU_VERSION=$(git -C "$KERNELDIR/KernelSU" describe --tags --abbrev=0)
-			export KCFLAGS='-DKSU_VERSION_TAG=\"'"$KSU_VERSION"'\"'
-			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VERSION 🤫
-Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager"
+			git checkout "$KSU_VER"
+			popd
+			echo "
+CONFIG_KSU=y
+CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+" >> arch/arm64/configs/sweet_defconfig
+			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VER 🤫
+Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager. Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
 			;;
 		NoKSU)
 			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/sweet_defconfig
@@ -149,7 +172,7 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 			;;
 		*)
 			tg_post_msg "what do you want me to do? 😳"
-			exit 1
+			build_fail
 			;;
 	esac
 
@@ -166,15 +189,14 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 
 	make -j4 O=out LLVM=1 LLVM_IAS=1 \
 	CROSS_COMPILE="aarch64-linux-gnu-" \
-	CROSS_COMPILE_ARM32="arm-linux-gnueabi-" 2>&1 | tee -a build.log
+	CROSS_COMPILE_ARM32="arm-linux-gnueabi-" \
+	KCFLAGS+=" -Wno-implicit-enum-enum-cast -Wno-default-const-init-field-unsafe -Wno-default-const-init-var-unsafe" 2>&1 | tee -a build.log
 
 	BUILD_END=$(date +"%s")
 	DIFF=$(($BUILD_END - $BUILD_START))
 	
 	if ! [[ -f $KERNELDIR/out/arch/arm64/boot/Image.gz ]];then
-	    tg_post_build "build.log" "Compile failed!!"
-	    log warn "**** Compile Failed!!! ****"
-	    exit 1
+	  build_fail
 	fi
 	log info "**** Kernel build completed ****"
 	
@@ -230,7 +252,7 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 
 ⚠️ AOSP ONLY BUILD!
 
-#Heliasts #BatteryFocusedKrenlol"
+#$KERNELNAME #BatteryFocusedKrenlol"
 }
 
 case $WITHKSU in
