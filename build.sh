@@ -36,7 +36,7 @@ WITHKSU=1
 
 # Sign the build?
 # 1 = true || 0 = false
-SIGN=1
+SIGN=0
 
 ############################################################
 # Push to Telegram?
@@ -118,14 +118,13 @@ Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 log info "****Cloning Clang****"
 TC_EXT="$KERNELDIR/toolchain"
 mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.2/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
+wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.6/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
 [[ -f "$TC_EXT/bin/clang" ]] || build_fail
 
-# export KBUILD_COMPILER_STRING=$("$TC_EXT/bin/clang" --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
-export KBUILD_COMPILER_STRING=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
+export COMPILER_STRINGS=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
 log info "**** AnyKernel3 Time ****"
 AK3DIR=$KERNELDIR/AnyKernel3
@@ -151,6 +150,7 @@ start_cooking() {
 		KSU)
 			# Ambil Update xxKSU terbaru
 			KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
+			# KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d" | sort -V | tail -n 1)"
 			# patch -p1 -N < ../umount.patch || build_fail
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
 			pushd KernelSU
@@ -159,6 +159,7 @@ start_cooking() {
 			echo "
 CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+CONFIG_KSU_LSM_SECURITY_HOOKS=y
 " >> arch/arm64/configs/sweet_defconfig
 			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VER 🤫
 Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager. Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
@@ -242,7 +243,7 @@ Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to 
 🔥 *Supported Android Version*
 - ${ANDRVER} ${ANDRVERTAG}
 🛠 *Compiler*
-- ${KBUILD_COMPILER_STRING}
+- ${COMPILER_STRINGS}
 💾 *MD5 Checksum*
 - \`${MD5CHECK}\`
 \`\`\`CHANGELOG
