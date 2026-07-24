@@ -15,6 +15,7 @@ log(){
 # Additional command (if you're lazy to commit :v)
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+sed -i 's/^EXTRAVERSION[[:space:]]*=.*/EXTRAVERSION =/' Makefile
 
 PATCH_APPLY=(
 )
@@ -156,13 +157,25 @@ start_cooking() {
 			pushd KernelSU
 			git checkout "$KSU_VER"
 			popd
+			# Download otomatis apk kernelsu untuk diupload kemudian
+			REPO="backslashxx/kernelsu"
+			APK_API="https://api.github.com/repos/$REPO/releases/latest"
+			APK_URL=$(
+			    curl -fsSL "$APK_API" |
+			    grep -oE '"browser_download_url":[[:space:]]*"[^"]+\.apk"' |
+			    head -n1 |
+			    sed -E 's/"browser_download_url":[[:space:]]*"([^"]+)"/\1/'
+			)
+			if [ -n "$APK_URL" ]; then
+				APK_NAME="$(basename $APK_URL)"
+				curl -fL -o "$APK_NAME" "$APK_URL"
+			fi
 			echo "
 CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 CONFIG_KSU_LSM_SECURITY_HOOKS=y
 " >> arch/arm64/configs/sweet_defconfig
-			BONUS_MSG="*Note:* KernelSU updated to xxKSU version $KSU_VER 🤫
-Check [xxKSU release page](https://github.com/backslashxx/KernelSU/releases) to download the manager. Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
+			BONUS_MSG="*Note:* KernelSU driver updated to xxKSU version $KSU_VER 🤫"
 			;;
 		NoKSU)
 			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/sweet_defconfig
@@ -262,12 +275,20 @@ case $WITHKSU in
 		;;
 	1)
 		start_cooking "KSU"
+		if [ -f "$APK_NAME" ]; then
+			tg_post_build "$APK_NAME" "xxKSU Manager.
+⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
+		fi
 		;;
 	b)
 		start_cooking "NoKSU"
 		# Removing zip files for second compilation
 		rm -rf *.zip
 		start_cooking "KSU"
+		if [ -f "$APK_NAME" ]; then
+			tg_post_build "$APK_NAME" "xxKSU Manager.
+⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
+		fi
 		;;
 	*)
 		tg_post_msg "what do you want me to do? 😳"
