@@ -119,7 +119,7 @@ Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 log info "****Cloning Clang****"
 TC_EXT="$KERNELDIR/toolchain"
 mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-22.1.6/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
+wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
 # wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
 popd
 export PATH="$TC_EXT/bin:$PATH"
@@ -175,7 +175,7 @@ CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 CONFIG_KSU_LSM_SECURITY_HOOKS=y
 " >> arch/arm64/configs/sweet_defconfig
-			BONUS_MSG="*Note:* KernelSU driver updated to xxKSU version $KSU_VER 🤫"
+			BONUS_MSG="*Note:* KernelSU driver updated to backslashxx fork, version $KSU_VER 🤫"
 			;;
 		NoKSU)
 			# sed -i 's/CONFIG_KSU=.*/CONFIG_KSU=n/g' "$KERNELDIR"/arch/arm64/configs/sweet_defconfig
@@ -266,7 +266,7 @@ CONFIG_KSU_LSM_SECURITY_HOOKS=y
 
 ⚠️ AOSP ONLY BUILD!
 
-#$KERNELNAME #BatteryFocusedKrenlol"
+#$KERNELNAME #BatteryFocusedKernol"
 }
 
 case $WITHKSU in
@@ -277,8 +277,8 @@ case $WITHKSU in
 		start_cooking "KSU"
 		sleep 10
 		if [ -f "$APK_NAME" ]; then
-			tg_post_build "$APK_NAME" "xxKSU Manager.
-⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
+			tg_post_build "$APK_NAME" "🔧 backslashxx KernelSU Manager.
+⚠️ Note: The driver supports Official KSU, KSU-Next, RKSU and KOWSU manager. But maybe need kernelsu-toolkit module."
 		fi
 		;;
 	b)
@@ -288,8 +288,8 @@ case $WITHKSU in
 		start_cooking "KSU"
 		sleep 10
 		if [ -f "$APK_NAME" ]; then
-			tg_post_build "$APK_NAME" "xxKSU Manager.
-⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
+			tg_post_build "$APK_NAME" "🔧 backslashxx KernelSU Manager.
+⚠️ Note: The driver supports Official KSU, KSU-Next, RKSU and KOWSU manager. But maybe need kernelsu-toolkit module."
 		fi
 		;;
 	*)
