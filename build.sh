@@ -150,8 +150,8 @@ start_cooking() {
 	case $1 in
 		KSU)
 			# Ambil Update xxKSU terbaru
-			KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
-			# KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d" | sort -V | tail -n 1)"
+			# KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d+(-\w+)?" | sort -V | tail -n 1)"
+			KSU_VER="$(git ls-remote --tags https://github.com/backslashxx/KernelSU.git | grep -oP "v\d+\.\d+\.\d" | sort -V | tail -n 1)"
 			# patch -p1 -N < ../umount.patch || build_fail
 			curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s
 			pushd KernelSU
@@ -159,7 +159,7 @@ start_cooking() {
 			popd
 			# Download otomatis apk kernelsu untuk diupload kemudian
 			REPO="backslashxx/kernelsu"
-			APK_API="https://api.github.com/repos/$REPO/releases/latest"
+			APK_API="https://api.github.com/repos/$REPO/releases/tags/$KSU_VER"
 			APK_URL=$(
 			    curl -fsSL "$APK_API" |
 			    grep -oE '"browser_download_url":[[:space:]]*"[^"]+\.apk"' |
@@ -275,6 +275,7 @@ case $WITHKSU in
 		;;
 	1)
 		start_cooking "KSU"
+		sleep 10
 		if [ -f "$APK_NAME" ]; then
 			tg_post_build "$APK_NAME" "xxKSU Manager.
 ⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
@@ -285,6 +286,7 @@ case $WITHKSU in
 		# Removing zip files for second compilation
 		rm -rf *.zip
 		start_cooking "KSU"
+		sleep 10
 		if [ -f "$APK_NAME" ]; then
 			tg_post_build "$APK_NAME" "xxKSU Manager.
 ⚠️ Notes: Official KSU, KSU-Next, Rissu KSU and KOWSU managers also supported."
