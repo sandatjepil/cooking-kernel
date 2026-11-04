@@ -9,9 +9,32 @@ jobs:
           name: Kernel 4.14.x
           shell: /bin/bash
           command: |
-            git clone -q --depth 1 -b 16 https://github.com/sandatjepil/kernel_xiaomi_sweet kernel
-            bash build.sh
-          no_output_timeout : 1h
+            export TZ="Asia/Jakarta"
+            export HOMEDIR="$(pwd)"
+            export KERNELDIR="$HOMEDIR/kernel"
+            export TCDIR="$HOMEDIR/toolchain"
+            (
+            git clone --depth 1 -b 16 https://github.com/sandatjepil/kernel_xiaomi_sweet kernel
+            [[ -f "$KERNELDIR/Makefile" ]] || exit 1
+            ) &
+            P_CLONE=$!
+            (
+            mkdir -p "$TCDIR"
+            cd "$TCDIR"
+            wget -O clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst
+            tar -xf clang.tar.zst
+            rm -f clang.tar.zst
+            [[ -f "$TCDIR/bin/clang" ]] || exit 1
+            ) &
+            P_CLANG=$!
+            wait "$P_CLONE"; RC_CLONE=$?
+            wait "$P_CLANG"; RC_CLANG=$?
+            [[ $RC_CLONE -eq 0 ]] || { echo "❌ clone kernel gagal ($RC_CLONE)"; exit 1; }
+            [[ $RC_CLANG -eq 0 ]] || { echo "❌ clang gagal ($RC_CLANG)";       exit 1; }
+            export PATH="$TCDIR/bin:$PATH"
+            cd "$KERNELDIR"
+            bash "$HOMEDIR/build.sh"
+          no_output_timeout: 1h
 workflows:
   version: 2.1
   cooking:

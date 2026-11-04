@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 ############################################################
-[[ -f kernel/Makefile ]] || exit 1
-cd kernel; export KERNELDIR=$(pwd) TZ="Asia/Jakarta"
 blue='\033[0;34m'; red='\033[0;31m'; nocol='\033[0m'
 log(){
 	case $1 in
@@ -116,15 +114,6 @@ Version <b>$KERVER</b> for <b>$DEVICENAME</b>.
 Crafted with <b>$(source /etc/os-release && echo "$NAME")</b>.
 Compilation progress <a href='$CIRCLE_BUILD_URL'>click here!</a>."
 
-log info "****Cloning Clang****"
-TC_EXT="$KERNELDIR/toolchain"
-mkdir -p "$TC_EXT" && pushd "$TC_EXT"
-wget -qO clang.tar.zst https://github.com/PurrrsLitterbox/LLVM-stable/releases/download/llvmorg-21.1.8/clang.tar.zst && tar -xf clang.tar.zst && rm -f clang.tar.zst
-# wget -qO clang.tar.zst $(curl -sL https://raw.githubusercontent.com/PurrrsLitterbox/LLVM-stable/refs/heads/main/latestlink.txt) && tar -xf clang.tar.zst && rm -f clang.tar.zst
-popd
-export PATH="$TC_EXT/bin:$PATH"
-[[ -f "$TC_EXT/bin/clang" ]] || build_fail
-
 export COMPILER_STRINGS=$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 
 log info "**** AnyKernel3 Time ****"
@@ -221,7 +210,7 @@ CONFIG_KSU_LSM_SECURITY_HOOKS=y
 	
 	log info "**** Time to zip up! ****"
 	cd $AK3DIR
-	zip -r9 ../$FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
+	zip -r9 $KERNELDIR/$FINAL_ZIP.zip * -x .git README.md anykernel-real.sh .gitignore zipsigner* *.zip
 	cd $KERNELDIR
 	
 	# if ! [[ -f $FINAL_ZIP.zip ]]; then
